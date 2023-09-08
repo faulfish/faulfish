@@ -1,5 +1,8 @@
 ### Hi there 👋
 
+提供範例檔案的地方，詳細文字說明請參照
+https://retireday.blogspot.com/2023/09/chatgptpython.html
+
 <!--
 **faulfish/faulfish** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
