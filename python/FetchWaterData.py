@@ -57,7 +57,7 @@ for reservoir in reservoirs:
     df = pd.concat([df, new_data], ignore_index=True)
 
 # 檢查檔案是否存在
-file_path = 'reservoir_data.xlsx'
+file_path = '..\\Excel\\reservoir_data.xlsx'
 if os.path.exists(file_path):
     # 讀取現有的 Excel 檔案
     existing_data = pd.read_excel(file_path)
