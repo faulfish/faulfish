@@ -14,6 +14,8 @@ def check_network():
 check_network()
 
 # 設置 OpenAI API 金鑰
+# export OPENAI_API_KEY=your_api_key_here
+# echo $OPENAI_API_KEY
 api_key = os.getenv("OPENAI_API_KEY")
 
 # 讀取 Excel 檔案

@@ -12,8 +12,9 @@ def check_network():
 def chatgpt(content, assistant):
     try:
         # 設置 OpenAI API 金鑰
+        # export OPENAI_API_KEY=your_api_key_here
+        # echo $OPENAI_API_KEY
         api_key = os.getenv("OPENAI_API_KEY")
-        api_key = "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"
 
         # 與 ChatGPT API 進行互動
         response = openai.ChatCompletion.create(

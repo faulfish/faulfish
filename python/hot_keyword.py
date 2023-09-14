@@ -123,7 +123,7 @@ now = datetime.now()
 sheet_name = now.strftime("%Y-%m-%d %H-%M-%S")
 
 # 寫入 Excel 檔案
-output_file = "hot_keywords.xlsx"
+output_file = "..\\Excel\\hot_keywords.xlsx"
 if os.path.isfile(output_file):
     with pd.ExcelWriter(output_file, mode="a", engine="openpyxl") as writer:
         combined_df.to_excel(writer, sheet_name=sheet_name, index=False)

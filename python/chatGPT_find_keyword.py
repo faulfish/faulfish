@@ -2,7 +2,9 @@ import openai
 import os
 
 # 設置 OpenAI API 金鑰
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# export OPENAI_API_KEY=your_api_key_here export OPENAI_API_KEY=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
+# echo $OPENAI_API_KEY
+api_key = os.getenv("OPENAI_API_KEY")
 
 def query_chat_model(prompt):
     response = openai.Completion.create(
