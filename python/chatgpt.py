@@ -14,6 +14,7 @@ def chatgpt(content, assistant):
         # 設置 OpenAI API 金鑰
         # export OPENAI_API_KEY=your_api_key_here
         # echo $OPENAI_API_KEY
+        # https://platform.openai.com/account/api-keys
         api_key = os.getenv("OPENAI_API_KEY")
 
         # 與 ChatGPT API 進行互動
