@@ -1,0 +1,14 @@
+version: '3'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./static:/app/static
+      - ./templates:/app/templates
+    environment:
+      - FLASK_ENV=production
+    command: python InfoMapAPI.py

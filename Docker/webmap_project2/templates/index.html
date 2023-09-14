@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>地ldflfm圖顯示</title>
+    <!-- 在這裡引入 Leaflet 的 CSS 和 JavaScript 檔案 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="height: 500px;"></div>
+    <button id="stopButton">dddd停止</button>
+    <button id="removeButton">ddd移除所有地點</button>
+
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var markers = [];
+
+        function flashMarker(marker) {
+            if (marker.options.opacity === 1) {
+                marker.setOpacity(0);
+            } else {
+                marker.setOpacity(1);
+            }
+        }
+
+        function addLocation(location) {
+            // 加入新的地點標記
+            var marker = L.marker([location.latitude, location.longitude]).addTo(map)
+                .bindPopup(location.location_name + ': ' + location.summary)
+                .openPopup();
+            // 閃爍新的地點標記
+            flashMarker(marker);
+
+            // 停止閃爍
+            setTimeout(() => {
+                marker.setOpacity(1);
+            }, 1000); // 1 秒後停止閃爍
+
+            markers.push(marker); // 將標記加入 markers 陣列
+        }
+
+        function updateMap() {
+            // 從檔案讀取地點資訊
+            fetch('/static/file.json')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(location => {
+                        // 檢查地點是否已經在地圖上，避免重複加入
+                        var existingMarker = map.hasLayer(L.marker([location.latitude, location.longitude]));
+                        if (!existingMarker) {
+                            addLocation(location);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // 頁面載入後立即更新地圖
+        updateMap();
+
+        // 每隔 5 秒自動更新地圖
+        setInterval(updateMap, 5000);
+
+        // 取得按鈕元素
+        var stopButton = document.getElementById('stopButton');
+        var removeButton = document.getElementById('removeButton');
+
+        // 點擊「停止閃爍」按鈕時觸發的處理程序
+        stopButton.addEventListener('click', function() {
+            markers.forEach(marker => {
+                marker.setOpacity(1);
+            });
+        });
+
+        // 點擊「移除地點」按鈕時觸發的處理程序
+        removeButton.addEventListener('click', function() {
+            markers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            markers = []; // 清空 markers 陣列
+        });
+    </script>
+</body>
+</html>

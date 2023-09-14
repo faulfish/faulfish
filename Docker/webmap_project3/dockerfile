@@ -1,0 +1,17 @@
+# 使用 Python 3.9 作為基礎映像
+FROM python:3.9
+
+# 設定工作目錄
+WORKDIR /app
+
+# 複製所需檔案到容器內的工作目錄
+COPY requirements.txt .
+COPY InfoMapAPI.py .
+COPY static/file.json ./static/file.json
+COPY templates/index.html ./templates/index.html 
+
+# 安裝 Python 依賴套件
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 指定容器內執行的命令
+CMD ["python", "InfoMapAPI.py"]

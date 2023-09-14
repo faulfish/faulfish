@@ -1,0 +1,9 @@
+# 使用之前的映像檔作為基底映像檔
+FROM webmap_project-web:latest
+
+# 設定工作目錄
+WORKDIR /app
+
+# 複製修改後的程式碼到容器中
+COPY . /app
+

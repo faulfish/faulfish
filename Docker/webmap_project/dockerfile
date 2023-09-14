@@ -1,0 +1,17 @@
+# 使用 Python 映像檔作為基底映像檔
+FROM python:3.9
+
+# 設定工作目錄
+WORKDIR /app
+
+# 將所有項目檔案複製到容器中
+COPY . /app
+
+# 安裝所需的套件
+RUN pip install Flask
+
+# 開放容器內的 5000 port
+EXPOSE 5000
+
+# 啟動應用程式
+CMD ["python", "app.py"]

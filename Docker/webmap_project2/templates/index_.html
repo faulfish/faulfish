@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>地圖顯示</title>
+    <!-- 在這裡引入 Leaflet 的 CSS 和 JavaScript 檔案 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="height: 500px;"></div>
+
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        function addLocation(location) {
+            // 加入新的地點標記
+            L.marker([location.latitude, location.longitude]).addTo(map)
+                .bindPopup(location.location_name + ': ' + location.summary)
+                .openPopup();
+        }
+
+        function updateMap() {
+            // 每隔 5 秒向 API 發送請求檢查是否有新的地點資訊
+            fetch('/api/locations')
+                .then(response => response.json())
+                .then(data => {
+                    // 獲取 API 回傳的地點資訊
+                    data.forEach(location => {
+                        // 檢查地點是否已經在地圖上，避免重複加入
+                        var existingMarker = map.hasLayer(L.marker([location.latitude, location.longitude]));
+                        if (!existingMarker) {
+                            addLocation(location);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // 頁面載入後立即更新地圖
+        updateMap();
+
+        // 每隔 5 秒自動更新地圖
+        setInterval(updateMap, 5000);
+    </script>
+</body>
+</html>

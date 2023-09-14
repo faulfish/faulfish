@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>地圖顯示</title>
+    <!-- 在這裡引入 Leaflet 的 CSS 和 JavaScript 檔案 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="height: 500px;"></div>
+
+    <script>
+        // 初始化地圖
+        var map = L.map('map').setView([0, 0], 2);
+
+        // 添加地圖圖層
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 假設這裡有一些預設的地點資料
+        var defaultLocations = [
+            { "location_name": "紐約", "latitude": 40.7128, "longitude": -74.0060 },
+            { "location_name": "倫敦", "latitude": 51.5074, "longitude": -0.1278 },
+            { "location_name": "東京", "latitude": 35.682839, "longitude": 139.759455 }
+        ];
+
+        // 在地圖上顯示預設地點
+        defaultLocations.forEach(function(location) {
+            L.marker([location.latitude, location.longitude]).addTo(map)
+                .bindPopup(location.location_name)
+                .openPopup();
+        });
+
+        // 使用 fetch API 向後端發送地理位置並獲取摘要資訊
+        function addLocation(location) {
+            fetch('/api/locations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(location)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 在地圖上標記新的地點
+                L.marker([data.latitude, data.longitude]).addTo(map)
+                    .bindPopup(data.location_name + ': ' + data.summary)
+                    .openPopup();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // 假設這裡有一個按鈕，用於手動輸入地理位置並觸發 addLocation 函式
+        document.getElementById('addLocationButton').addEventListener('click', function() {
+            var locationName = prompt('輸入地點名稱:');
+            var latitude = parseFloat(prompt('輸入緯度:'));
+            var longitude = parseFloat(prompt('輸入經度:'));
+            addLocation({ "location_name": locationName, "latitude": latitude, "longitude": longitude });
+        });
+    </script>
+</body>
+</html>

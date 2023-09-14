@@ -1,0 +1,9 @@
+# 使用 webmap_project3-web:latest 作為基礎映像
+FROM webmap_project3-web:latest
+
+# 複製所需檔案到容器內的工作目錄
+COPY requirements.txt .
+COPY InfoMapAPI.py .
+COPY static/file.json ./static/file.json
+COPY templates/index.html ./templates/index.html 
+
