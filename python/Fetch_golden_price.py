@@ -4,7 +4,7 @@ import re
 import pandas as pd
 
 # 檔案名稱和路徑
-file_name = "..\\Excel\\data.xlsx"
+file_name = 'Excel/data.xlsx'
 
 url = 'https://rate.bot.com.tw/gold?Lang=zh-TW'
 response = requests.get(url)
