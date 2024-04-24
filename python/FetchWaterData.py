@@ -9,11 +9,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
+chrome_driver_path = '/Users/alan/Downloads/chromedriver-mac-x64/chromedriver'
+service = Service(chrome_driver_path)
+driver = webdriver.Chrome(service=service)
 
 # 使用Selenium開啟瀏覽器並自動登入//chromedriver//Google Chrome for Testing.app
 # driver = webdriver.Chrome(service=Service('/usr/local/bin/chromedriver' ) )
-chrome_driver_path = '/usr/local/bin/chromedriver'
-driver = webdriver.Chrome(executable_path=chrome_driver_path)
+# chrome_driver_path = '/usr/local/bin/chromedriver-mac-x64/GoogleChromeforTesting.app'
+# driver = webdriver.Chrome(executable_path=chrome_driver_path)
 
 url = 'https://water.taiwanstat.com/'
 driver.get(url)

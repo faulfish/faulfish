@@ -12,10 +12,9 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from chatgpt import chatgpt
 
-# 使用Selenium開啟瀏覽器並自動登入//chromedriver//Google Chrome for Testing.app
-# driver = webdriver.Chrome(service=Service('/usr/local/bin/chromedriver' ) )
-chrome_driver_path = '/usr/local/bin/chromedriver'
-driver = webdriver.Chrome(executable_path=chrome_driver_path)
+chrome_driver_path = '/Users/alan/Downloads/chromedriver-mac-x64/chromedriver'
+service = Service(chrome_driver_path)
+driver = webdriver.Chrome(service=service)
 
 # 引入 ANSI Escape Sequences 的顏色代碼
 DARK_GREEN = '\033[31m'  # 红色
@@ -80,7 +79,8 @@ def get_google_hot_keywords(geo="TW"):
         content = "Please identify the category of the following content:"
 
         # Generate summary using ChatGPT API
-        summary = chatgpt(filtered_lines[0][:50], content)
+        # summary = chatgpt(filtered_lines[0][:50], content)
+        summary = " ";
         org     = filtered_lines[0][:50];
 
         # List of categories to check for in the summary
