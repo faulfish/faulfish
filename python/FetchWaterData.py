@@ -17,6 +17,7 @@ driver = webdriver.Chrome(service=service)
 # driver = webdriver.Chrome(service=Service('/usr/local/bin/chromedriver' ) )
 # chrome_driver_path = '/usr/local/bin/chromedriver-mac-x64/GoogleChromeforTesting.app'
 # driver = webdriver.Chrome(executable_path=chrome_driver_path)
+# https://googlechromelabs.github.io/chrome-for-testing/#stable
 
 url = 'https://water.taiwanstat.com/'
 driver.get(url)
@@ -26,7 +27,7 @@ wait = WebDriverWait(driver, 10)
 wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'reservoir')))
 
 # 等待N秒
-time.sleep(2)
+time.sleep(2000)
 
 soup = BeautifulSoup(driver.page_source, 'html.parser')
 reservoirs = soup.find_all(class_="reservoir")
