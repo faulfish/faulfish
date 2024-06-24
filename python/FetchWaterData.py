@@ -27,7 +27,7 @@ wait = WebDriverWait(driver, 10)
 wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'reservoir')))
 
 # 等待N秒
-time.sleep(2000)
+time.sleep(2)
 
 soup = BeautifulSoup(driver.page_source, 'html.parser')
 reservoirs = soup.find_all(class_="reservoir")
