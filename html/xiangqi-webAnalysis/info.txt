@@ -1,0 +1,8 @@
+xiangqi-web/
+├── index.html         # 前端 HTML 結構
+├── style.css          # 前端樣式表
+├── script.js          # 前端 JavaScript 邏輯
+├── server.js          # 後端 Node.js 服務器
+├── rules.js           # 象棋規則引擎
+├── utils.js           # FEN 轉換等工具函數 (新增)
+└── package.json       # Node.js 項目配置文件

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁版中國象棋</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>中國象棋對弈</h1>
+
+    <div class="game-container">
+        <div class="info-panel">
+            <div class="info-panel">
+    <h2>狀態信息</h2>
+    <!-- 修改或移除下面這行 -->
+    <!-- <div id="player-info">你的顏色: <span id="player-color">等待分配...</span></div> -->
+    <div id="player-info">模式: 本地對弈/分析</div> <!-- 示例修改 -->
+
+    <div id="turn-info">輪到: <span id="current-turn">紅方</span></div>
+    <div id="timer-info">
+        紅方時間: <span id="red-timer">--:--</span><br>
+        黑方時間: <span id="black-timer">--:--</span>
+    </div>
+    <div id="message-area" style="color: red;"></div>
+    <!-- 按鈕狀態可能需要根據連接情況調整，但這裡主要關注走棋邏輯 -->
+    <button id="start-button" disabled>等待連接...</button>
+</div>
+            <div id="turn-info">輪到: <span id="current-turn">紅方</span></div>
+            <div id="timer-info">
+                紅方時間: <span id="red-timer">--:--</span><br>
+                黑方時間: <span id="black-timer">--:--</span>
+            </div>
+            <div id="message-area" style="color: red;"></div>
+            <button id="start-button" disabled>等待對手...</button>
+        </div>
+
+        <div class="board-container">
+            <canvas id="xiangqi-board" width="540" height="600"></canvas>
+             <!-- 棋盤尺寸可以調整，需要與 JS 內的 squareSize 配合 -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

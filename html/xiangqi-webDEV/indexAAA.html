@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁版中國象棋 (分析板模式)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>中國象棋 - 分析板</h1>
+
+    <div class="game-container">
+        <div class="info-panel">
+            <h2>狀態信息</h2>
+            <div id="player-info">模式: 分析板</div> <!-- 標識模式 -->
+
+            <!-- 輪次提示仍然會根據最後移動的棋子更新 -->
+            <div id="turn-info">輪到: <span id="current-turn">等待連接...</span></div>
+
+            <!-- 計時器 (可選，分析板模式下可能不需要) -->
+            <div id="timer-info">
+                紅方時間: <span id="red-timer">--:--</span><br>
+                黑方時間: <span id="black-timer">--:--</span>
+            </div>
+
+            <!-- 消息區域 -->
+            <div id="message-area" style="color: blue; margin-top: 10px; font-weight: bold;"></div>
+
+            <!-- 狀態按鈕 -->
+            <button id="start-button" disabled style="margin-top: 15px;">等待連接...</button>
+        </div>
+
+        <div class="board-container">
+            <!-- 棋盤 Canvas 元素 -->
+            <canvas id="xiangqi-board" width="540" height="600"></canvas>
+        </div>
+    </div>
+
+    <!-- 引入 JavaScript 文件 -->
+    <script src="script.js"></script>
+</body>
+</html>

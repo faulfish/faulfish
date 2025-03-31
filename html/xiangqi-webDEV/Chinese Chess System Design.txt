@@ -1,0 +1,5 @@
+xiangqi-web/
+├── index.html
+├── style.css
+├── script.js
+└── server.js

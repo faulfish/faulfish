@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網頁版中國象棋 (分析板模式)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>中國象棋 - 分析板</h1>
+
+    <div class="game-container">
+        <div class="info-panel">
+            <h2>狀態信息</h2>
+            <div id="player-info">模式: 分析板</div> <!-- 標識模式 -->
+            <div id="turn-info">輪到: <span id="current-turn">等待連接...</span></div>
+            <div id="timer-info">
+                紅方時間: <span id="red-timer">--:--</span><br>
+                黑方時間: <span id="black-timer">--:--</span>
+            </div>
+            <div id="message-area" style="color: blue; margin-top: 10px; font-weight: bold;"></div>
+            <button id="start-button" disabled style="margin-top: 15px;">等待連接...</button>
+
+            <!-- *** 新增棋譜區域 *** -->
+            <div class="record-panel" style="margin-top: 20px;">
+                <h3>棋譜 (FEN + 着法)</h3>
+                <textarea id="game-record-area" rows="8" style="width: 95%; font-family: monospace; font-size: 0.9em;" placeholder="點擊'更新顯示'獲取，或在此粘貼 FEN..."></textarea>
+                <div style="margin-top: 5px;">
+                    <button id="copy-record-button" title="複製上方文本框內容到剪貼板">複製棋譜</button>
+                    <button id="load-fen-button" title="從上方文本框加載 FEN 局面 (會清空歷史)">加載局面</button>
+                    <button id="update-record-button" title="請求服務器更新上方棋譜顯示">更新顯示</button>
+                </div>
+            </div>
+            <!-- *** 新增結束 *** -->
+        </div>
+
+        <div class="board-container">
+            <canvas id="xiangqi-board" width="540" height="600"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "xiangqi-web",
+  "version": "1.0.0",
+  "description": "Web based Xiangqi game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js" // 如果安裝了 nodemon
+  },
+  "keywords": [
+    "xiangqi",
+    "chinese chess",
+    "websocket"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.17.0" // 版本號可能不同
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.2" // 可選，用於開發時自動重啟服務器
+  }
+}

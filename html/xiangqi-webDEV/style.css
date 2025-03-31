@@ -1,0 +1,57 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f0f0f0;
+}
+
+.game-container {
+    display: flex;
+    margin-top: 20px;
+}
+
+.info-panel {
+    padding: 20px;
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    margin-right: 20px;
+    min-width: 150px;
+}
+
+.board-container {
+    border: 2px solid #333;
+}
+
+#xiangqi-board {
+    background-color: #f3d19c; /* 棋盤背景色 */
+    cursor: pointer;
+}
+
+/* 棋子樣式 (非常基礎，用文字表示) */
+.piece {
+    font-size: 30px; /* 調整棋子大小 */
+    font-weight: bold;
+    text-align: center;
+    line-height: 50px; /* 確保垂直居中 */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid #555;
+    position: absolute; /* 稍後 JS 控制位置 */
+    background-color: white; /* 棋子背景 */
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+}
+
+.red-piece {
+    color: red;
+}
+
+.black-piece {
+    color: black;
+}
+
+.selected {
+    border: 3px solid gold;
+    box-shadow: 0 0 10px gold;
+}
