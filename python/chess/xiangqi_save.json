@@ -1,0 +1,113 @@
+{
+    "move_log": [
+        {
+            "start": [
+                6,
+                4
+            ],
+            "end": [
+                5,
+                4
+            ],
+            "piece": "P",
+            "captured": null,
+            "notation": "兵(6,4)-(5,4)",
+            "time": 7.19,
+            "player": "red"
+        },
+        {
+            "start": [
+                3,
+                4
+            ],
+            "end": [
+                4,
+                4
+            ],
+            "piece": "p",
+            "captured": null,
+            "notation": "卒(3,4)-(4,4)",
+            "time": 4.32,
+            "player": "black"
+        },
+        {
+            "start": [
+                5,
+                4
+            ],
+            "end": [
+                4,
+                4
+            ],
+            "piece": "P",
+            "captured": "p",
+            "notation": "兵(5,4)-(4,4)x卒",
+            "time": 3.32,
+            "player": "red"
+        },
+        {
+            "start": [
+                3,
+                2
+            ],
+            "end": [
+                4,
+                2
+            ],
+            "piece": "p",
+            "captured": null,
+            "notation": "卒(3,2)-(4,2)",
+            "time": 3.23,
+            "player": "black"
+        },
+        {
+            "start": [
+                4,
+                4
+            ],
+            "end": [
+                3,
+                4
+            ],
+            "piece": "P",
+            "captured": null,
+            "notation": "兵(4,4)-(3,4)",
+            "time": 11.38,
+            "player": "red"
+        },
+        {
+            "start": [
+                0,
+                0
+            ],
+            "end": [
+                1,
+                0
+            ],
+            "piece": "r",
+            "captured": null,
+            "notation": "車(0,0)-(1,0)",
+            "time": 7.44,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                7
+            ],
+            "end": [
+                7,
+                4
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮(7,7)-(7,4)",
+            "time": 12.11,
+            "player": "red"
+        }
+    ],
+    "initial_timers": {
+        "red": 900,
+        "black": 900
+    }
+}
