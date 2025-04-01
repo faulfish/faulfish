@@ -12,37 +12,7 @@
             "piece": "P",
             "captured": null,
             "notation": "兵七進一",
-            "time": 5.5,
-            "player": "red"
-        },
-        {
-            "start": [
-                3,
-                2
-            ],
-            "end": [
-                4,
-                2
-            ],
-            "piece": "p",
-            "captured": null,
-            "notation": "卒3進1",
-            "time": 1.55,
-            "player": "black"
-        },
-        {
-            "start": [
-                7,
-                1
-            ],
-            "end": [
-                7,
-                2
-            ],
-            "piece": "C",
-            "captured": null,
-            "notation": "炮八平七",
-            "time": 2.91,
+            "time": 1.62,
             "player": "red"
         },
         {
@@ -57,8 +27,533 @@
             "piece": "c",
             "captured": null,
             "notation": "砲2平3",
-            "time": 1.33,
+            "time": 1.21,
             "player": "black"
+        },
+        {
+            "start": [
+                7,
+                1
+            ],
+            "end": [
+                7,
+                3
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮八平六",
+            "time": 2.33,
+            "player": "red"
+        },
+        {
+            "start": [
+                3,
+                4
+            ],
+            "end": [
+                4,
+                4
+            ],
+            "piece": "p",
+            "captured": null,
+            "notation": "卒5進1",
+            "time": 2.75,
+            "player": "black"
+        },
+        {
+            "start": [
+                6,
+                6
+            ],
+            "end": [
+                5,
+                6
+            ],
+            "piece": "P",
+            "captured": null,
+            "notation": "兵三進一",
+            "time": 1.58,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                2
+            ],
+            "end": [
+                2,
+                4
+            ],
+            "piece": "c",
+            "captured": null,
+            "notation": "砲3平5",
+            "time": 3.06,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                3
+            ],
+            "end": [
+                4,
+                3
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮進三",
+            "time": 2.73,
+            "player": "red"
+        },
+        {
+            "start": [
+                4,
+                4
+            ],
+            "end": [
+                5,
+                4
+            ],
+            "piece": "p",
+            "captured": null,
+            "notation": "卒5進1",
+            "time": 2.69,
+            "player": "black"
+        },
+        {
+            "start": [
+                4,
+                3
+            ],
+            "end": [
+                5,
+                3
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮退一",
+            "time": 4.13,
+            "player": "red"
+        },
+        {
+            "start": [
+                5,
+                4
+            ],
+            "end": [
+                6,
+                4
+            ],
+            "piece": "p",
+            "captured": "P",
+            "notation": "卒5進1",
+            "time": 2.96,
+            "player": "black"
+        },
+        {
+            "start": [
+                5,
+                3
+            ],
+            "end": [
+                5,
+                4
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮平五",
+            "time": 7.4,
+            "player": "red"
+        },
+        {
+            "start": [
+                0,
+                3
+            ],
+            "end": [
+                1,
+                4
+            ],
+            "piece": "a",
+            "captured": null,
+            "notation": "士4進5",
+            "time": 10.7,
+            "player": "black"
+        },
+        {
+            "start": [
+                5,
+                4
+            ],
+            "end": [
+                4,
+                4
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮進一",
+            "time": 11.41,
+            "player": "red"
+        },
+        {
+            "start": [
+                6,
+                4
+            ],
+            "end": [
+                6,
+                3
+            ],
+            "piece": "p",
+            "captured": null,
+            "notation": "卒5平4",
+            "time": 1.95,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                7
+            ],
+            "end": [
+                7,
+                4
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮平五",
+            "time": 6.19,
+            "player": "red"
+        },
+        {
+            "start": [
+                6,
+                3
+            ],
+            "end": [
+                6,
+                4
+            ],
+            "piece": "p",
+            "captured": null,
+            "notation": "卒4平5",
+            "time": 6.35,
+            "player": "black"
+        },
+        {
+            "start": [
+                9,
+                5
+            ],
+            "end": [
+                8,
+                4
+            ],
+            "piece": "A",
+            "captured": null,
+            "notation": "仕四進五",
+            "time": 4.17,
+            "player": "red"
+        },
+        {
+            "start": [
+                6,
+                4
+            ],
+            "end": [
+                7,
+                4
+            ],
+            "piece": "p",
+            "captured": "C",
+            "notation": "卒5進1",
+            "time": 1.07,
+            "player": "black"
+        },
+        {
+            "start": [
+                9,
+                2
+            ],
+            "end": [
+                7,
+                4
+            ],
+            "piece": "E",
+            "captured": "p",
+            "notation": "相七進五",
+            "time": 4.45,
+            "player": "red"
+        },
+        {
+            "start": [
+                0,
+                4
+            ],
+            "end": [
+                0,
+                3
+            ],
+            "piece": "k",
+            "captured": null,
+            "notation": "將平4",
+            "time": 5.16,
+            "player": "black"
+        },
+        {
+            "start": [
+                9,
+                1
+            ],
+            "end": [
+                7,
+                2
+            ],
+            "piece": "H",
+            "captured": null,
+            "notation": "傌進七",
+            "time": 4.53,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                4
+            ],
+            "end": [
+                7,
+                4
+            ],
+            "piece": "c",
+            "captured": "E",
+            "notation": "砲進5",
+            "time": 10.35,
+            "player": "black"
+        },
+        {
+            "start": [
+                9,
+                6
+            ],
+            "end": [
+                7,
+                4
+            ],
+            "piece": "E",
+            "captured": "c",
+            "notation": "相進五",
+            "time": 1.78,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                7
+            ],
+            "end": [
+                2,
+                4
+            ],
+            "piece": "c",
+            "captured": null,
+            "notation": "砲平5",
+            "time": 3.94,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                2
+            ],
+            "end": [
+                5,
+                3
+            ],
+            "piece": "H",
+            "captured": null,
+            "notation": "傌進六",
+            "time": 4.27,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                4
+            ],
+            "end": [
+                2,
+                3
+            ],
+            "piece": "c",
+            "captured": null,
+            "notation": "砲平4",
+            "time": 2.66,
+            "player": "black"
+        },
+        {
+            "start": [
+                5,
+                3
+            ],
+            "end": [
+                3,
+                2
+            ],
+            "piece": "H",
+            "captured": "p",
+            "notation": "傌進七",
+            "time": 1.68,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                3
+            ],
+            "end": [
+                2,
+                4
+            ],
+            "piece": "c",
+            "captured": null,
+            "notation": "砲平5",
+            "time": 10.89,
+            "player": "black"
+        },
+        {
+            "start": [
+                9,
+                0
+            ],
+            "end": [
+                7,
+                0
+            ],
+            "piece": "R",
+            "captured": null,
+            "notation": "俥進二",
+            "time": 2.83,
+            "player": "red"
+        },
+        {
+            "start": [
+                0,
+                7
+            ],
+            "end": [
+                2,
+                6
+            ],
+            "piece": "h",
+            "captured": null,
+            "notation": "馬進7",
+            "time": 7.63,
+            "player": "black"
+        },
+        {
+            "start": [
+                3,
+                2
+            ],
+            "end": [
+                1,
+                1
+            ],
+            "piece": "H",
+            "captured": null,
+            "notation": "傌進八",
+            "time": 3.69,
+            "player": "red"
+        },
+        {
+            "start": [
+                0,
+                3
+            ],
+            "end": [
+                0,
+                4
+            ],
+            "piece": "k",
+            "captured": null,
+            "notation": "將平5",
+            "time": 2.32,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                0
+            ],
+            "end": [
+                7,
+                3
+            ],
+            "piece": "R",
+            "captured": null,
+            "notation": "俥平六",
+            "time": 1.67,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                6
+            ],
+            "end": [
+                3,
+                4
+            ],
+            "piece": "h",
+            "captured": null,
+            "notation": "馬進5",
+            "time": 5.96,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                3
+            ],
+            "end": [
+                3,
+                3
+            ],
+            "piece": "R",
+            "captured": null,
+            "notation": "俥進四",
+            "time": 8.56,
+            "player": "red"
+        },
+        {
+            "start": [
+                3,
+                4
+            ],
+            "end": [
+                4,
+                6
+            ],
+            "piece": "h",
+            "captured": null,
+            "notation": "馬進7",
+            "time": 1.51,
+            "player": "black"
+        },
+        {
+            "start": [
+                3,
+                3
+            ],
+            "end": [
+                0,
+                3
+            ],
+            "piece": "R",
+            "captured": null,
+            "notation": "俥進三",
+            "time": 1.64,
+            "player": "red"
         }
     ]
 }
