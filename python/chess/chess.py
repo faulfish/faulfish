@@ -3,7 +3,7 @@ import pygame
 import sys
 import time
 import json
-import os
+import os # <--- 加入這一行
 from collections import defaultdict
 from enum import Enum, auto
 
@@ -13,6 +13,7 @@ class GameState(Enum):
     CHECKMATE = auto()
     STALEMATE = auto()
     ANALYSIS = auto()
+    PAUSED = auto() # <-- 新增狀態
 
 # --- Constants ---
 # Board & Screen Dimensions
@@ -134,16 +135,27 @@ def load_font(font_path, size, fallback_list):
             if not valid_fallbacks:
                  print(f"錯誤: 沒有有效的備選字體提供。")
                  return None
-            font = pygame.font.SysFont(valid_fallbacks, size)
-            if font:
-                print(f"使用系統備選字體: {font.get_name()} (size {size})")
-                return font
+            # Use pygame's font matching
+            matched_font = pygame.font.match_font(valid_fallbacks)
+            if matched_font:
+                 font = pygame.font.Font(matched_font, size)
+                 print(f"使用系統備選字體: {matched_font} (size {size})")
+                 return font
             else:
-                print(f"錯誤: 找不到任何合適的字體 (包括備選: {valid_fallbacks})。")
-                return None
+                # Last resort: default pygame font
+                font = pygame.font.Font(None, size) # Use default font
+                print(f"警告: 找不到任何指定的備選字體，使用 Pygame 預設字體。")
+                return font
+
         except Exception as fallback_e:
             print(f"嘗試備選字體時發生錯誤: {fallback_e}")
-            return None
+            try:
+                font = pygame.font.Font(None, size) # Use default font on error
+                print(f"警告: 嘗試備選字體出錯，使用 Pygame 預設字體。")
+                return font
+            except Exception as final_e:
+                 print(f"錯誤: 連 Pygame 預設字體都無法載入: {final_e}")
+                 return None # Absolutely cannot load any font
     except Exception as e:
         print(f"載入字體時發生未預期錯誤: {e}")
         return None
@@ -153,21 +165,24 @@ def load_font(font_path, size, fallback_list):
 class XiangqiGame:
     def __init__(self):
         """Initializes or resets the game state."""
-        self.board = [row[:] for row in INITIAL_BOARD_SETUP] # Deep copy
+        self.board = [row[:] for row in INITIAL_BOARD_SETUP]
         self.current_player = 'red'
         self.selected_piece_pos = None
         self.valid_moves = []
-        self.move_log = [] # Stores dicts: {"start":..., "end":..., ...}
-        self.game_state = GameState.PLAYING # Use Enum
+        self.move_log = []
+        self.game_state = GameState.PLAYING
         self.status_message = "紅方回合"
 
         self.timers = {'red': DEFAULT_TIME, 'black': DEFAULT_TIME}
         self.last_move_time = time.time()
         self.current_move_start_time = time.time()
 
-        # Reset analysis specific variables
-        self.analysis_board_state = None # No need for separate board when starting fresh
+        self.analysis_board_state = None
         self.analysis_current_step = -1
+
+        # --- Pause related ---
+        self.pause_start_time = None
+        self.accumulated_pause_duration = 0.0 # Track pause time between moves
 
     def new_game(self):
         """Resets the game to the initial state for a new match."""
@@ -178,7 +193,10 @@ class XiangqiGame:
         self.current_player = 'black' if self.current_player == 'red' else 'red'
         player_name = "紅方" if self.current_player == 'red' else "黑方"
         self.status_message = f"{player_name} 回合"
+        # Reset the start time for the *new* player's move
         self.current_move_start_time = time.time()
+        # Also reset the last update time for the timer logic
+        self.last_move_time = self.current_move_start_time
 
     def select_piece(self, r, c):
         if self.game_state != GameState.PLAYING: return False
@@ -201,18 +219,14 @@ class XiangqiGame:
         original_selected = self.selected_piece_pos # Backup state
         original_valid = self.valid_moves
 
-        # Use the *live* board state (self.board) for checking potential moves of *other* pieces
-        # because get_valid_moves_for_piece relies on the current self.board for its checks.
-        live_board = self.board
+        live_board = self.board # Use live board for legality checks
 
         for r in range(BOARD_HEIGHT):
             for c in range(BOARD_WIDTH):
-                piece = live_board[r][c] # Check piece on the live board
-                # Check same type, same color, BUT DIFFERENT starting position
+                piece = live_board[r][c]
                 if piece is not None and piece.lower() == piece_char_lower and get_piece_color(piece) == color and (r,c) != (r_start_moving, c_start_moving):
-                     # Temporarily select this other piece to check its *legal* moves on the live board
-                     self.selected_piece_pos = (r,c)
-                     potential_moves = self.get_valid_moves_for_piece(r, c) # Checks self.board
+                     self.selected_piece_pos = (r,c) # Temporarily select
+                     potential_moves = self.get_valid_moves_for_piece(r, c) # Check on live board
                      if (r_end, c_end) in potential_moves:
                          ambiguous_movers.append((r, c))
 
@@ -220,12 +234,11 @@ class XiangqiGame:
         self.valid_moves = original_valid
         return ambiguous_movers
 
-
     def get_algebraic_notation(self, board_before_move, start_pos, end_pos, player_color):
         """Generates standard Chinese algebraic notation for a move."""
         r_start, c_start = start_pos
         r_end, c_end = end_pos
-        piece = board_before_move[r_start][c_start] # Use the board state *before* the move
+        piece = board_before_move[r_start][c_start]
 
         if piece is None: return "錯誤"
 
@@ -254,36 +267,31 @@ class XiangqiGame:
         if piece_type == 'p':
             needs_start_file = True
         else:
-            # Pass the start pos of the piece actually moving to the checker
             potential_movers = self._find_ambiguous_pieces(board_before_move, r_end, c_end, piece, start_pos, player_color)
-
             if potential_movers:
                 all_ambiguous_files = {pos[1] for pos in potential_movers}
                 all_ambiguous_files.add(c_start)
-
-                if len(all_ambiguous_files) > 1:
-                    needs_start_file = True
-                elif piece_type in ['r', 'h', 'c']:
-                    needs_start_file = True
+                if len(all_ambiguous_files) > 1: needs_start_file = True
+                elif piece_type in ['r', 'h', 'c']: needs_start_file = True
 
         if needs_start_file:
             first_part = piece_char_display + get_file_notation(c_start, player_color)
 
         return f"{first_part}{direction}{target_val}"
 
-
     def make_move(self, r_end, c_end):
+        if self.game_state != GameState.PLAYING: return False # Cannot move if not playing
         if not self.selected_piece_pos or (r_end, c_end) not in self.valid_moves:
-            self.selected_piece_pos = None
-            self.valid_moves = []
-            return False
+            self.selected_piece_pos = None; self.valid_moves = []; return False
 
         r_start, c_start = self.selected_piece_pos
         piece_to_move = self.board[r_start][c_start]
         captured_piece = self.board[r_end][c_end]
-        time_taken = time.time() - self.current_move_start_time
 
-        # Generate notation BEFORE board update using the state BEFORE move
+        # Calculate thinking time for this move (excluding pauses)
+        move_thinking_time = time.time() - self.current_move_start_time
+
+        # Generate notation BEFORE board update
         board_state_before_move = [row[:] for row in self.board]
         notation = self.get_algebraic_notation(board_state_before_move, (r_start, c_start), (r_end, c_end), self.current_player)
 
@@ -291,17 +299,19 @@ class XiangqiGame:
         self.move_log.append({
             "start": (r_start, c_start), "end": (r_end, c_end), "piece": piece_to_move,
             "captured": captured_piece, "notation": notation,
-            "time": round(time_taken, 1), # Store time with 1 decimal place maybe? Or keep 2? Let's keep 2 for data, format later.
-            "time": round(time_taken, 2),
+            "time": round(move_thinking_time, 2), # Thinking time
+            "pause_duration": round(self.accumulated_pause_duration, 2), # Pause before this move
             "player": self.current_player
         })
+        self.accumulated_pause_duration = 0.0 # Reset for next move interval
 
         # Update Board
         self.board[r_end][c_end] = piece_to_move
         self.board[r_start][c_start] = EMPTY
         self.selected_piece_pos = None
         self.valid_moves = []
-        self.last_move_time = time.time()
+        # self.last_move_time = time.time() # Resetting this happens in switch_player or resume_game
+        # self.current_move_start_time = self.last_move_time # Resetting this happens in switch_player or resume_game
 
         # Check End Conditions
         opponent_color = 'black' if self.current_player == 'red' else 'red'
@@ -313,11 +323,49 @@ class XiangqiGame:
             self.game_state = GameState.STALEMATE
             self.status_message = "欠行! 和棋!"
         else:
-            self.switch_player()
+            self.switch_player() # Switches player and resets move start times
             if self.is_in_check(self.current_player):
                  player_name = "紅方" if self.current_player == 'red' else "黑方"
                  self.status_message = f"{player_name} 回合 (將軍!)"
         return True
+
+    def pause_game(self):
+        """Pauses the game if it's currently playing."""
+        if self.game_state == GameState.PLAYING:
+            self.game_state = GameState.PAUSED
+            self.pause_start_time = time.time()
+            # Calculate time elapsed *before* pausing
+            elapsed_before_pause = self.pause_start_time - self.last_move_time
+            # Update timer *before* pausing
+            self.timers[self.current_player] -= elapsed_before_pause
+            self.timers[self.current_player] = max(0, self.timers[self.current_player])
+            # Now status update
+            self.status_message = "遊戲暫停"
+            print("遊戲已暫停")
+
+    def resume_game(self):
+        """Resumes the game if it's paused."""
+        if self.game_state == GameState.PAUSED and self.pause_start_time is not None:
+            pause_duration = time.time() - self.pause_start_time
+            self.accumulated_pause_duration += pause_duration # Add to accumulator for the *next* move log
+
+            # Reset time references for timer updates *after* resuming
+            now = time.time()
+            self.last_move_time = now
+            # No need to adjust current_move_start_time here, thinking time already stopped
+
+            self.game_state = GameState.PLAYING
+            self.pause_start_time = None
+            # Restore status message
+            player_name = "紅方" if self.current_player == 'red' else "黑方"
+            status = f"{player_name} 回合"
+            if self.is_in_check(self.current_player): status += " (將軍!)"
+            self.status_message = status
+            print(f"遊戲已恢復 (暫停 {pause_duration:.1f} 秒)")
+        elif self.game_state == GameState.PAUSED:
+             self.game_state = GameState.PLAYING # Force resume
+             print("警告: 嘗試恢復遊戲時 pause_start_time 為空，強制恢復。")
+
 
     def is_in_check(self, player_color, current_board=None):
         board_to_check = current_board if current_board else self.board
@@ -384,6 +432,8 @@ class XiangqiGame:
         return False
 
     def _get_raw_valid_moves(self, r_start, c_start, current_board):
+        # --- Movement logic for each piece type ---
+        # (This part remains unchanged from the previous correct version)
         moves = []
         piece = current_board[r_start][c_start]
         if piece is None: return []
@@ -461,18 +511,22 @@ class XiangqiGame:
         return not self.is_in_check(player_color) and not self.get_all_valid_moves(player_color)
 
     def update_timers(self):
-        if self.game_state == GameState.PLAYING:
-            now = time.time()
-            time_elapsed = now - self.last_move_time
-            self.last_move_time = now
-            player_timer = self.timers[self.current_player]
-            player_timer -= time_elapsed
-            self.timers[self.current_player] = max(0, player_timer)
-            if self.timers[self.current_player] <= 0:
-                self.game_state = GameState.CHECKMATE
-                opponent = 'black' if self.current_player == 'red' else 'red'
-                opponent_name = "黑方" if opponent == 'black' else "紅方"
-                self.status_message = f"超時! {opponent_name} 勝!"
+        if self.game_state != GameState.PLAYING:
+            return # No timer updates if not actively playing
+
+        now = time.time()
+        time_elapsed = now - self.last_move_time
+        self.last_move_time = now # Update time reference for next calculation
+
+        current_timer = self.timers[self.current_player]
+        current_timer -= time_elapsed
+        self.timers[self.current_player] = max(0, current_timer)
+
+        if self.timers[self.current_player] <= 0:
+            self.game_state = GameState.CHECKMATE
+            opponent = 'black' if self.current_player == 'red' else 'red'
+            opponent_name = "黑方" if opponent == 'black' else "紅方"
+            self.status_message = f"超時! {opponent_name} 勝!"
 
     def save_game(self, filename="xiangqi_save.json"):
         try:
@@ -533,69 +587,69 @@ class XiangqiGame:
 
 # --- Drawing Functions ---
 def draw_text_wrapped(surface, text, rect, font, color):
-    # Simplified version for move list (assumes single line per move)
     if font is None: return rect.top
     lines = text.splitlines()
     y = rect.top
     line_spacing = font.get_linesize() + 1
     for line in lines:
-         if y + line_spacing > rect.bottom: break # Stop if exceeding rect
+         if y + line_spacing > rect.bottom: break
          try:
              image = font.render(line, True, color)
              surface.blit(image, (rect.left, y))
              y += line_spacing
-         except Exception as e: print(f"Render Error: {e}")
+         except Exception as e: print(f"Render Error: Wrapped Text - {e}")
     return y
 
 def draw_board(screen, river_font):
-    screen.fill(BOARD_COLOR_BG, (0, 0, BOARD_AREA_WIDTH, BOARD_AREA_HEIGHT))
-    half_sq = SQUARE_SIZE // 2; RIVER_TOP_ROW = 4; RIVER_BOTTOM_ROW = 5
-    # Vert Lines
-    for c in range(BOARD_WIDTH):
-        x = c * SQUARE_SIZE + half_sq
-        pygame.draw.line(screen, LINE_COLOR_DARK, (x, half_sq), (x, RIVER_TOP_ROW * SQUARE_SIZE + half_sq), LINE_THICKNESS_NORMAL)
-        pygame.draw.line(screen, LINE_COLOR_DARK, (x, RIVER_BOTTOM_ROW * SQUARE_SIZE + half_sq), (x, (BOARD_HEIGHT - 1) * SQUARE_SIZE + half_sq), LINE_THICKNESS_NORMAL)
-    # Horiz Lines
-    for r in range(BOARD_HEIGHT):
-        y = r * SQUARE_SIZE + half_sq
-        pygame.draw.line(screen, LINE_COLOR_DARK, (half_sq, y), ((BOARD_WIDTH - 1) * SQUARE_SIZE + half_sq, y), LINE_THICKNESS_NORMAL)
-    # Border
-    pygame.draw.rect(screen, LINE_COLOR_DARK, (half_sq, half_sq, (BOARD_WIDTH - 1) * SQUARE_SIZE, (BOARD_HEIGHT - 1) * SQUARE_SIZE), LINE_THICKNESS_OUTER)
-    # Palaces
-    pygame.draw.line(screen, LINE_COLOR_DARK, (3*SQUARE_SIZE+half_sq, half_sq), (5*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
-    pygame.draw.line(screen, LINE_COLOR_DARK, (5*SQUARE_SIZE+half_sq, half_sq), (3*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
-    pygame.draw.line(screen, LINE_COLOR_DARK, (3*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (5*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
-    pygame.draw.line(screen, LINE_COLOR_DARK, (5*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (3*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
-    # River Text
-    if river_font:
-        texts = [("楚", 1.5), ("河", 2.5), ("漢", 5.5), ("界", 6.5)]
-        river_y = RIVER_TOP_ROW * SQUARE_SIZE + SQUARE_SIZE
-        for text, col_pos in texts:
-             try:
-                 surf = river_font.render(text, True, RIVER_TEXT_COLOR)
-                 text_x = (col_pos + 0.5) * SQUARE_SIZE
-                 screen.blit(surf, surf.get_rect(center=(int(text_x), int(river_y))))
-             except Exception as e: print(f"Render Error: River Text '{text}' - {e}")
-    # Markers
-    p_marks_c, p_marks_r = [0, 2, 4, 6, 8], [3, 6]
-    c_marks_c, c_marks_r = [1, 7], [2, 7]
-    mark_len, mark_off = SQUARE_SIZE // 9, SQUARE_SIZE // 12
-    marks_coords = set((c, r) for r in p_marks_r for c in p_marks_c) | set((c, r) for r in c_marks_r for c in c_marks_c)
-    for c, r in marks_coords:
-         x, y = c*SQUARE_SIZE+half_sq, r*SQUARE_SIZE+half_sq
-         corners = {(-1,-1):[(-mark_len,0),(0,-mark_len)],(1,-1):[(mark_len,0),(0,-mark_len)],
-                    (-1, 1):[(-mark_len,0),(0, mark_len)],(1, 1):[(mark_len,0),(0, mark_len)]}
-         for (cdx, cdy), lines in corners.items():
-             if (c==0 and cdx<0) or (c==BOARD_WIDTH-1 and cdx>0) or \
-                (r==0 and cdy<0) or (r==BOARD_HEIGHT-1 and cdy>0): continue
-             cx, cy = x + cdx*mark_off, y + cdy*mark_off
-             for (ldx, ldy) in lines:
+    try:
+        screen.fill(BOARD_COLOR_BG, (0, 0, BOARD_AREA_WIDTH, BOARD_AREA_HEIGHT))
+        half_sq = SQUARE_SIZE // 2; RIVER_TOP_ROW = 4; RIVER_BOTTOM_ROW = 5
+        # Vert Lines
+        for c in range(BOARD_WIDTH):
+            x = c * SQUARE_SIZE + half_sq
+            pygame.draw.line(screen, LINE_COLOR_DARK, (x, half_sq), (x, RIVER_TOP_ROW * SQUARE_SIZE + half_sq), LINE_THICKNESS_NORMAL)
+            pygame.draw.line(screen, LINE_COLOR_DARK, (x, RIVER_BOTTOM_ROW * SQUARE_SIZE + half_sq), (x, (BOARD_HEIGHT - 1) * SQUARE_SIZE + half_sq), LINE_THICKNESS_NORMAL)
+        # Horiz Lines
+        for r in range(BOARD_HEIGHT):
+            y = r * SQUARE_SIZE + half_sq
+            pygame.draw.line(screen, LINE_COLOR_DARK, (half_sq, y), ((BOARD_WIDTH - 1) * SQUARE_SIZE + half_sq, y), LINE_THICKNESS_NORMAL)
+        # Border
+        pygame.draw.rect(screen, LINE_COLOR_DARK, (half_sq, half_sq, (BOARD_WIDTH - 1) * SQUARE_SIZE, (BOARD_HEIGHT - 1) * SQUARE_SIZE), LINE_THICKNESS_OUTER)
+        # Palaces
+        pygame.draw.line(screen, LINE_COLOR_DARK, (3*SQUARE_SIZE+half_sq, half_sq), (5*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+        pygame.draw.line(screen, LINE_COLOR_DARK, (5*SQUARE_SIZE+half_sq, half_sq), (3*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+        pygame.draw.line(screen, LINE_COLOR_DARK, (3*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (5*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+        pygame.draw.line(screen, LINE_COLOR_DARK, (5*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (3*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+        # River Text
+        if river_font:
+            texts = [("楚", 1.5), ("河", 2.5), ("漢", 5.5), ("界", 6.5)]
+            river_y = RIVER_TOP_ROW * SQUARE_SIZE + SQUARE_SIZE
+            for text, col_pos in texts:
                  try:
-                      pygame.draw.line(screen, LINE_COLOR_DARK, (cx, cy), (cx+ldx, cy+ldy), LINE_THICKNESS_NORMAL)
-                 except Exception as e: print(f"Render Error: Marker Line at ({c},{r}) - {e}")
+                     surf = river_font.render(text, True, RIVER_TEXT_COLOR)
+                     text_x = (col_pos + 0.5) * SQUARE_SIZE
+                     screen.blit(surf, surf.get_rect(center=(int(text_x), int(river_y))))
+                 except Exception as e: print(f"Render Error: River Text '{text}' - {e}")
+        # Markers
+        p_marks_c, p_marks_r = [0, 2, 4, 6, 8], [3, 6]
+        c_marks_c, c_marks_r = [1, 7], [2, 7]
+        mark_len, mark_off = SQUARE_SIZE // 9, SQUARE_SIZE // 12
+        marks_coords = set((c, r) for r in p_marks_r for c in p_marks_c) | set((c, r) for r in c_marks_r for c in c_marks_c)
+        for c, r in marks_coords:
+             x, y = c*SQUARE_SIZE+half_sq, r*SQUARE_SIZE+half_sq
+             corners = {(-1,-1):[(-mark_len,0),(0,-mark_len)],(1,-1):[(mark_len,0),(0,-mark_len)],
+                        (-1, 1):[(-mark_len,0),(0, mark_len)],(1, 1):[(mark_len,0),(0, mark_len)]}
+             for (cdx, cdy), lines in corners.items():
+                 if (c==0 and cdx<0) or (c==BOARD_WIDTH-1 and cdx>0) or \
+                    (r==0 and cdy<0) or (r==BOARD_HEIGHT-1 and cdy>0): continue
+                 cx, cy = x + cdx*mark_off, y + cdy*mark_off
+                 for (ldx, ldy) in lines:
+                     try: pygame.draw.line(screen, LINE_COLOR_DARK, (cx, cy), (cx+ldx, cy+ldy), LINE_THICKNESS_NORMAL)
+                     except Exception as e: print(f"Render Error: Marker Line at ({c},{r}) - {e}")
+    except Exception as e: print(f"Render Error: draw_board - {e}")
 
-
-def draw_pieces(screen, board, piece_font):
+def draw_pieces(screen, board, piece_font, game_state): # Added game_state
+    if game_state == GameState.PAUSED: return # Don't draw if paused
     if not piece_font: return
     radius = SQUARE_SIZE // 2 - 6
     for r in range(BOARD_HEIGHT):
@@ -612,77 +666,81 @@ def draw_pieces(screen, board, piece_font):
                     screen.blit(surf, surf.get_rect(center=(cx, cy)))
                 except Exception as e: print(f"Render Error: Piece '{piece}' at ({r},{c}) - {e}")
 
-def draw_highlights(screen, selected_pos, valid_moves, selected_surf, move_surf, marker_radius):
-     try:
+def draw_highlights(screen, selected_pos, valid_moves, selected_surf, move_surf, marker_radius, game_state): # Added game_state
+    if game_state == GameState.PAUSED: return # Don't draw if paused
+    try:
          if selected_pos:
             r, c = selected_pos; cx, cy = c*SQUARE_SIZE+SQUARE_SIZE//2, r*SQUARE_SIZE+SQUARE_SIZE//2
             screen.blit(selected_surf, selected_surf.get_rect(center=(cx, cy)))
          for r, c in valid_moves:
             cx, cy = c*SQUARE_SIZE+SQUARE_SIZE//2, r*SQUARE_SIZE+SQUARE_SIZE//2
             screen.blit(move_surf, move_surf.get_rect(center=(cx, cy)))
-     except Exception as e: print(f"Render Error: Highlights - {e}")
+    except Exception as e: print(f"Render Error: Highlights - {e}")
 
 # --- REVISED draw_info_panel ---
 def draw_info_panel(screen, game, font_small, font_large):
-    save_btn_rect, load_btn_rect, new_game_btn_rect = None, None, None
+    save_btn_rect, load_btn_rect, pause_resume_btn_rect, new_game_btn_rect = None, None, None, None
     panel_rect = pygame.Rect(0, BOARD_AREA_HEIGHT, BOARD_AREA_WIDTH, INFO_PANEL_HEIGHT)
 
-    # 1. Draw Panel Background (Always)
-    try:
-        pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect)
-    except Exception as e: print(f"Render Error: Info Panel BG - {e}"); return None, None, None
+    try: pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect)
+    except Exception as e: print(f"Render Error: Info Panel BG - {e}"); return None, None, None, None
 
-    # 2. Draw Timers and Status Message (Only when NOT analyzing)
-    if game.game_state != GameState.ANALYSIS:
-        if font_small and font_large: # Check if fonts are available
+    if game.game_state not in [GameState.ANALYSIS, GameState.PAUSED]:
+        if font_small and font_large:
             try: # Timers
-                rm, rs = divmod(int(game.timers['red']), 60)
-                bm, bs = divmod(int(game.timers['black']), 60)
-                t_red = font_small.render(f"紅方: {rm:02d}:{rs:02d}", True, RED_COLOR)
-                t_black = font_small.render(f"黑方: {bm:02d}:{bs:02d}", True, BLACK_COLOR)
-                screen.blit(t_red, (panel_rect.left + 20, panel_rect.top + 15))
-                screen.blit(t_black, (panel_rect.right - t_black.get_width() - 20, panel_rect.top + 15))
+                rm, rs = divmod(int(game.timers['red']), 60); bm, bs = divmod(int(game.timers['black']), 60)
+                tr = font_small.render(f"紅方: {rm:02d}:{rs:02d}", True, RED_COLOR)
+                tb = font_small.render(f"黑方: {bm:02d}:{bs:02d}", True, BLACK_COLOR)
+                screen.blit(tr, (panel_rect.left + 20, panel_rect.top + 15))
+                screen.blit(tb, (panel_rect.right - tb.get_width() - 20, panel_rect.top + 15))
             except Exception as e: print(f"Render Error: Timers - {e}")
-
             try: # Status Message
                 status_surf = font_large.render(game.status_message, True, BLACK_COLOR)
-                screen.blit(status_surf, status_surf.get_rect(center=(panel_rect.centerx, panel_rect.top + 55))) # Adjusted Y pos
+                screen.blit(status_surf, status_surf.get_rect(center=(panel_rect.centerx, panel_rect.top + 55)))
             except Exception as e: print(f"Render Error: Status Message - {e}")
+    elif game.game_state == GameState.PAUSED and font_large:
+         try:
+              pause_surf = font_large.render(game.status_message, True, BLACK_COLOR) # "遊戲暫停"
+              screen.blit(pause_surf, pause_surf.get_rect(center=(panel_rect.centerx, panel_rect.top + 40)))
+         except Exception as e: print(f"Render Error: Pause Status - {e}")
 
-    # 3. Draw Buttons (Always, if font_small exists)
     if font_small:
-        btn_h, btn_w, btn_padding = 30, 85, 10
-        btn_y = panel_rect.bottom - btn_h - 10 # Position buttons near bottom
-
-        # Calculate starting X to roughly center the 3 buttons
-        total_button_width = btn_w * 3 + btn_padding * 2
+        btn_h, btn_w, btn_padding = 30, 80, 8
+        btn_y = panel_rect.bottom - btn_h - 10
+        total_button_width = btn_w * 4 + btn_padding * 3
         start_x = panel_rect.centerx - total_button_width // 2
 
-        # Button 1: Save
         save_btn_rect = pygame.Rect(start_x, btn_y, btn_w, btn_h)
-        try:
+        load_btn_rect = pygame.Rect(save_btn_rect.right + btn_padding, btn_y, btn_w, btn_h)
+        pause_resume_btn_rect = pygame.Rect(load_btn_rect.right + btn_padding, btn_y, btn_w, btn_h)
+        new_game_btn_rect = pygame.Rect(pause_resume_btn_rect.right + btn_padding, btn_y, btn_w, btn_h)
+
+        try: # Save Button
             pygame.draw.rect(screen, BUTTON_COLOR, save_btn_rect, border_radius=6)
             save_txt = font_small.render("儲存棋譜", True, BUTTON_TEXT_COLOR)
             screen.blit(save_txt, save_txt.get_rect(center=save_btn_rect.center))
         except Exception as e: print(f"Render Error: Save Button - {e}")
-
-        # Button 2: Load
-        load_btn_rect = pygame.Rect(save_btn_rect.right + btn_padding, btn_y, btn_w, btn_h)
-        try:
+        try: # Load Button
             pygame.draw.rect(screen, BUTTON_COLOR, load_btn_rect, border_radius=6)
             load_txt = font_small.render("載入棋譜", True, BUTTON_TEXT_COLOR)
             screen.blit(load_txt, load_txt.get_rect(center=load_btn_rect.center))
         except Exception as e: print(f"Render Error: Load Button - {e}")
-
-        # Button 3: New Game
-        new_game_btn_rect = pygame.Rect(load_btn_rect.right + btn_padding, btn_y, btn_w, btn_h)
-        try:
+        try: # Pause/Resume Button
+            pause_btn_text = "恢復" if game.game_state == GameState.PAUSED else "暫停"
+            is_pause_active = game.game_state in [GameState.PLAYING, GameState.PAUSED]
+            btn_color = BUTTON_COLOR if is_pause_active else (160, 160, 160)
+            text_color = BUTTON_TEXT_COLOR if is_pause_active else (210, 210, 210)
+            pygame.draw.rect(screen, btn_color, pause_resume_btn_rect, border_radius=6)
+            pause_txt = font_small.render(pause_btn_text, True, text_color)
+            screen.blit(pause_txt, pause_txt.get_rect(center=pause_resume_btn_rect.center))
+        except Exception as e: print(f"Render Error: Pause/Resume Button - {e}")
+        try: # New Game Button
             pygame.draw.rect(screen, BUTTON_COLOR, new_game_btn_rect, border_radius=6)
             new_game_txt = font_small.render("新對局", True, BUTTON_TEXT_COLOR)
             screen.blit(new_game_txt, new_game_txt.get_rect(center=new_game_btn_rect.center))
         except Exception as e: print(f"Render Error: New Game Button - {e}")
 
-    return save_btn_rect, load_btn_rect, new_game_btn_rect
+    return save_btn_rect, load_btn_rect, pause_resume_btn_rect, new_game_btn_rect
 # --- END REVISED draw_info_panel ---
 
 
@@ -690,122 +748,85 @@ def draw_info_panel(screen, game, font_small, font_large):
 def draw_right_panel(screen, game, font_small, font_large, analysis_font):
     buttons = {}
     panel_rect = pygame.Rect(BOARD_AREA_WIDTH, 0, ANALYSIS_PANEL_WIDTH, SCREEN_HEIGHT)
-    try:
-        pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect)
+    try: pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect)
     except Exception as e: print(f"Render Error: Right Panel BG - {e}"); return {}
 
-    # Define areas
-    top_padding = 15; button_area_height = 80 # Adjusted for 2 rows
-    move_list_top_padding = 10
+    top_padding=15; button_area_height=80; move_list_top_padding=10
     button_area_rect = pygame.Rect(panel_rect.left, panel_rect.top + top_padding, panel_rect.width, button_area_height)
     move_list_area_rect = pygame.Rect( panel_rect.left, button_area_rect.bottom + move_list_top_padding, panel_rect.width, panel_rect.height - button_area_rect.bottom - move_list_top_padding - 10 )
 
-    # --- Draw Buttons at the Top (Only in Analysis) ---
     if game.game_state == GameState.ANALYSIS:
         if not analysis_font: return buttons
-
+        # --- Draw Buttons ---
         btn_w, btn_h, h_space, v_space = 90, 30, 15, 10
         start_x = panel_rect.centerx - (btn_w * 2 + h_space) // 2
         current_y = button_area_rect.top
-
-        # Row 1: First, Prev
-        try:
+        try: # Row 1
             rect_first = pygame.Rect(start_x, current_y, btn_w, btn_h); buttons['first'] = rect_first
             pygame.draw.rect(screen, BUTTON_COLOR, rect_first, border_radius=6)
             surf_first = analysis_font.render("<< 首步", True, BUTTON_TEXT_COLOR)
             screen.blit(surf_first, surf_first.get_rect(center=rect_first.center))
-
             rect_prev = pygame.Rect(rect_first.right + h_space, current_y, btn_w, btn_h); buttons['prev'] = rect_prev
             pygame.draw.rect(screen, BUTTON_COLOR, rect_prev, border_radius=6)
             surf_prev = analysis_font.render("< 上一步", True, BUTTON_TEXT_COLOR)
             screen.blit(surf_prev, surf_prev.get_rect(center=rect_prev.center))
         except Exception as e: print(f"Render Error: Analysis Buttons Row 1 - {e}")
-
         current_y += btn_h + v_space
-
-        # Row 2: Next, Last
-        try:
+        try: # Row 2
             rect_next = pygame.Rect(start_x, current_y, btn_w, btn_h); buttons['next'] = rect_next
             pygame.draw.rect(screen, BUTTON_COLOR, rect_next, border_radius=6)
             surf_next = analysis_font.render("下一步 >", True, BUTTON_TEXT_COLOR)
             screen.blit(surf_next, surf_next.get_rect(center=rect_next.center))
-
             rect_last = pygame.Rect(rect_next.right + h_space, current_y, btn_w, btn_h); buttons['last'] = rect_last
             pygame.draw.rect(screen, BUTTON_COLOR, rect_last, border_radius=6)
             surf_last = analysis_font.render("末步 >>", True, BUTTON_TEXT_COLOR)
             screen.blit(surf_last, surf_last.get_rect(center=rect_last.center))
         except Exception as e: print(f"Render Error: Analysis Buttons Row 2 - {e}")
 
-        # --- Draw Move List Below Buttons ---
+        # --- Draw Move List ---
         if not font_small: return buttons
-
         list_x_padding = 10
         list_render_area = move_list_area_rect.inflate(-list_x_padding * 2, -10)
-
         try:
             line_height = font_small.get_linesize() + 1
             if line_height <= 0: raise ValueError("Font error")
             max_visible_lines = list_render_area.height // line_height
-
             if max_visible_lines > 0 and game.move_log:
-                total_moves = len(game.move_log)
-                current_step = game.analysis_current_step
-
-                # Calculate display window start index
+                total_moves = len(game.move_log); current_step = game.analysis_current_step
                 display_start_index = 0
                 if total_moves > max_visible_lines:
                     target_center_line = max(0, current_step)
                     display_start_index = max(0, target_center_line - max_visible_lines // 2)
                     display_start_index = min(display_start_index, total_moves - max_visible_lines)
-
-                # Iterate and draw visible moves
                 for i in range(max_visible_lines):
                     move_index = display_start_index + i
                     if move_index >= total_moves: break
-
                     move_data = game.move_log[move_index]
-                    notation = move_data.get("notation", "???")
-                    player_char = "紅" if move_data.get("player") == 'red' else "黑"
-                    move_time = move_data.get("time", None)
-
-                    time_str = ""
-                    if move_time is not None:
-                        try: time_str = f" ({move_time:.1f}s)" # Format time
-                        except (TypeError, ValueError): time_str = " (?s)"
-
-                    move_text = f"{move_index + 1}. ({player_char}) {notation}{time_str}" # Add time
-
-                    is_current = (move_index == current_step)
-                    text_color = MOVE_LIST_HIGHLIGHT_COLOR if is_current else BLACK_COLOR
-
+                    notation = move_data.get("notation", "???"); player_char = "紅" if move_data.get("player") == 'red' else "黑"
+                    move_time = move_data.get("time", None); pause_time = move_data.get("pause_duration", 0.0)
+                    time_str = f"({move_time:.1f}s)" if move_time is not None else "(?s)"
+                    pause_str = f" [P:{pause_time:.1f}s]" if pause_time > 0.05 else ""
+                    move_text = f"{move_index + 1}. ({player_char}) {notation}{time_str}{pause_str}"
+                    is_current = (move_index == current_step); text_color = MOVE_LIST_HIGHLIGHT_COLOR if is_current else BLACK_COLOR
                     surf = font_small.render(move_text, True, text_color)
                     render_y = list_render_area.top + i * line_height
-
-                    # Basic text truncation if too wide
                     max_width = list_render_area.width
                     if surf.get_width() > max_width:
                          try:
-                             original_len = len(move_text)
-                             # Estimate chars to keep, minus a bit for ellipsis
-                             keep_chars = max(1, int(original_len * max_width / surf.get_width()) - 2)
+                             original_len = len(move_text); keep_chars = max(1, int(original_len * max_width / surf.get_width()) - 2)
                              surf = font_small.render(move_text[:keep_chars] + "..", True, text_color)
-                         except Exception as e: print(f"Render Error: Truncating Text - {e}") # Fallback if error
-
+                         except Exception as e: print(f"Render Error: Truncating Text - {e}")
                     screen.blit(surf, (list_render_area.left, render_y))
-
             elif not game.move_log:
                  empty_text = font_small.render("棋譜為空", True, BLACK_COLOR)
                  screen.blit(empty_text, empty_text.get_rect(center=list_render_area.center))
-
         except Exception as e: print(f"Error rendering move list: {e}")
-
-    else: # Not in analysis mode - Draw Title
+    else: # Not Analysis -> Draw Title
         if font_large:
             try:
                 title_surf = font_large.render("象棋", True, BUTTON_COLOR)
                 screen.blit(title_surf, title_surf.get_rect(center=panel_rect.center))
             except Exception as e: print(f"Render Error: Title - {e}")
-
     return buttons
 # --- END REVISED draw_right_panel ---
 
@@ -823,17 +844,21 @@ def get_clicked_square(pos):
 def main():
     pygame.init()
     # --- Font Loading ---
-    pfs = int(SQUARE_SIZE*0.55); ifs_s = int(SQUARE_SIZE*0.30); ifs_l = int(SQUARE_SIZE*0.40)
-    rfs = int(SQUARE_SIZE*0.35); afs = int(SQUARE_SIZE*0.30)
-    pf = load_font(FONT_FILE_PATH, pfs, FALLBACK_FONTS); ifs = load_font(FONT_FILE_PATH, ifs_s, FALLBACK_FONTS)
-    ifl = load_font(FONT_FILE_PATH, ifs_l, FALLBACK_FONTS); rf = load_font(FONT_FILE_PATH, rfs, FALLBACK_FONTS)
-    af = load_font(FONT_FILE_PATH, afs, FALLBACK_FONTS)
-    if not pf: print("CRITICAL FONT ERROR"); pygame.quit(); sys.exit()
+    pfs=int(SQUARE_SIZE*0.55); ifs_s=int(SQUARE_SIZE*0.30); ifs_l=int(SQUARE_SIZE*0.40)
+    rfs=int(SQUARE_SIZE*0.35); afs=int(SQUARE_SIZE*0.30)
+    pf=load_font(FONT_FILE_PATH,pfs,FALLBACK_FONTS);ifs=load_font(FONT_FILE_PATH,ifs_s,FALLBACK_FONTS)
+    ifl=load_font(FONT_FILE_PATH,ifs_l,FALLBACK_FONTS);rf=load_font(FONT_FILE_PATH,rfs,FALLBACK_FONTS)
+    af=load_font(FONT_FILE_PATH,afs,FALLBACK_FONTS)
+    if not pf: print("CRITICAL FONT ERROR - Main piece font failed to load."); pygame.quit(); sys.exit()
+    if not ifs: print("Warning: Small info/analysis font failed to load.")
+    if not ifl: print("Warning: Large info font failed to load.")
+    if not rf: print("Warning: River font failed to load.")
+    if not af: print("Warning: Analysis font (same as small info) failed to load.")
 
     # --- Highlight Surfaces ---
-    sel_surf = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
-    pygame.draw.circle(sel_surf, SELECTED_COLOR, (SQUARE_SIZE//2, SQUARE_SIZE//2), SQUARE_SIZE//2 - 4, 3)
-    mr = SQUARE_SIZE // 7; mov_surf = pygame.Surface((mr*2, mr*2), pygame.SRCALPHA)
+    sel_surf=pygame.Surface((SQUARE_SIZE,SQUARE_SIZE),pygame.SRCALPHA)
+    pygame.draw.circle(sel_surf, SELECTED_COLOR, (SQUARE_SIZE//2, SQUARE_SIZE//2), SQUARE_SIZE//2-4, 3)
+    mr=SQUARE_SIZE//7;mov_surf=pygame.Surface((mr*2,mr*2),pygame.SRCALPHA)
     pygame.draw.circle(mov_surf, HIGHLIGHT_COLOR, (mr, mr), mr)
 
     # --- Setup ---
@@ -843,84 +868,112 @@ def main():
     game = XiangqiGame()
     running = True
     # Button rects from info panel (initially None)
-    save_btn_rect, load_btn_rect, new_game_btn_rect = None, None, None
+    save_btn_rect, load_btn_rect, pause_resume_btn_rect, new_game_btn_rect = None, None, None, None
     # Button rects from analysis panel (initially empty)
     analysis_buttons = {}
 
     while running:
         # === Event Handling ===
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT: running = False
+        try: # Add error handling around event loop
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: running = False
 
-            # --- Mouse Click ---
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mouse_pos = event.pos
-                clicked_ui = False
+                # --- Mouse Click ---
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mouse_pos = event.pos
+                    clicked_ui = False
 
-                # 1. Check Bottom Panel Buttons (Always check these first)
-                if save_btn_rect and save_btn_rect.collidepoint(mouse_pos):
-                    game.save_game(); clicked_ui = True
-                elif load_btn_rect and load_btn_rect.collidepoint(mouse_pos):
-                    game.load_game(); clicked_ui = True # load_game changes state
-                elif new_game_btn_rect and new_game_btn_rect.collidepoint(mouse_pos):
-                    game.new_game(); clicked_ui = True # new_game resets state
+                    # 1. Check Bottom Panel Buttons
+                    if save_btn_rect and save_btn_rect.collidepoint(mouse_pos):
+                        game.save_game(); clicked_ui = True
+                    elif load_btn_rect and load_btn_rect.collidepoint(mouse_pos):
+                        game.load_game(); clicked_ui = True
+                    elif new_game_btn_rect and new_game_btn_rect.collidepoint(mouse_pos):
+                        game.new_game(); clicked_ui = True
+                    elif pause_resume_btn_rect and pause_resume_btn_rect.collidepoint(mouse_pos):
+                        if game.game_state == GameState.PLAYING: game.pause_game()
+                        elif game.game_state == GameState.PAUSED: game.resume_game()
+                        clicked_ui = True
 
-                # 2. Check Right Panel Analysis Buttons (Only if Analysis and no bottom button clicked)
-                if not clicked_ui and game.game_state == GameState.ANALYSIS:
-                    for key, rect in analysis_buttons.items():
-                        if rect and rect.collidepoint(mouse_pos):
-                            game.analysis_navigate(key) # Handles 'first', 'prev', etc.
-                            clicked_ui = True; break
+                    # 2. Check Right Panel Analysis Buttons
+                    if not clicked_ui and game.game_state == GameState.ANALYSIS:
+                        for key, rect in analysis_buttons.items():
+                            if rect and rect.collidepoint(mouse_pos):
+                                game.analysis_navigate(key)
+                                clicked_ui = True; break
 
-                # 3. Check Board Click (Only if Playing and no UI clicked)
-                if not clicked_ui and game.game_state == GameState.PLAYING:
-                    coords = get_clicked_square(mouse_pos)
-                    if coords:
-                        r, c = coords
-                        if game.selected_piece_pos == (r, c): game.selected_piece_pos = None; game.valid_moves = []
-                        elif game.selected_piece_pos:
-                            if (r, c) in game.valid_moves: game.make_move(r, c)
+                    # 3. Check Board Click (Only if Playing)
+                    if not clicked_ui and game.game_state == GameState.PLAYING:
+                        coords = get_clicked_square(mouse_pos)
+                        if coords:
+                            r, c = coords
+                            if game.selected_piece_pos == (r, c): game.selected_piece_pos = None; game.valid_moves = []
+                            elif game.selected_piece_pos:
+                                if (r, c) in game.valid_moves: game.make_move(r, c)
+                                else: game.select_piece(r, c)
                             else: game.select_piece(r, c)
-                        else: game.select_piece(r, c)
-                    else: game.selected_piece_pos = None; game.valid_moves = []
+                        else: game.selected_piece_pos = None; game.valid_moves = []
 
-            # --- Keyboard ---
-            if event.type == pygame.KEYDOWN:
-                if game.game_state == GameState.ANALYSIS:
-                     if event.key == pygame.K_RIGHT: game.analysis_navigate('next')
-                     elif event.key == pygame.K_LEFT: game.analysis_navigate('prev')
-                     elif event.key in [pygame.K_UP, pygame.K_HOME]: game.analysis_navigate('first')
-                     elif event.key in [pygame.K_DOWN, pygame.K_END]: game.analysis_navigate('last')
+                # --- Keyboard ---
+                if event.type == pygame.KEYDOWN:
+                    if game.game_state == GameState.ANALYSIS:
+                        if event.key == pygame.K_RIGHT: game.analysis_navigate('next')
+                        elif event.key == pygame.K_LEFT: game.analysis_navigate('prev')
+                        elif event.key in [pygame.K_UP, pygame.K_HOME]: game.analysis_navigate('first')
+                        elif event.key in [pygame.K_DOWN, pygame.K_END]: game.analysis_navigate('last')
+                    elif game.game_state == GameState.PLAYING and event.key == pygame.K_p: # P for Pause
+                        game.pause_game()
+                    elif game.game_state == GameState.PAUSED and event.key == pygame.K_p: # P for Resume
+                         game.resume_game()
+
+        except Exception as e:
+             print(f"Error during event handling: {e}") # Catch errors here
 
         # === Game Logic Update ===
-        if game.game_state == GameState.PLAYING: game.update_timers()
+        try:
+            game.update_timers()
+        except Exception as e:
+             print(f"Error during game logic update: {e}")
 
         # === Drawing ===
-        screen.fill(INFO_BG_COLOR)
-        board_to_draw = game.analysis_board_state if game.game_state == GameState.ANALYSIS else game.board
+        try:
+            screen.fill(INFO_BG_COLOR)
+            board_to_draw = game.analysis_board_state if game.game_state == GameState.ANALYSIS else game.board
 
-        # --- Draw Board Area ---
-        draw_board(screen, rf)
-        if board_to_draw: draw_pieces(screen, board_to_draw, pf)
-        if game.game_state == GameState.PLAYING: draw_highlights(screen, game.selected_piece_pos, game.valid_moves, sel_surf, mov_surf, mr)
+            # --- Draw Board Area ---
+            draw_board(screen, rf)
+            if board_to_draw: draw_pieces(screen, board_to_draw, pf, game.game_state) # Pass state
+            draw_highlights(screen, game.selected_piece_pos, game.valid_moves, sel_surf, mov_surf, mr, game.game_state) # Pass state
 
-        # --- Draw Bottom Panel (returns its button rects) ---
-        save_btn_rect, load_btn_rect, new_game_btn_rect = draw_info_panel(screen, game, ifs, ifl)
+            # --- Draw Bottom Panel ---
+            save_btn_rect, load_btn_rect, pause_resume_btn_rect, new_game_btn_rect = draw_info_panel(screen, game, ifs, ifl)
 
-        # --- Draw Right Panel (returns analysis button rects) ---
-        analysis_buttons = draw_right_panel(screen, game, ifs, ifl, af)
+            # --- Draw Right Panel ---
+            analysis_buttons = draw_right_panel(screen, game, ifs, ifl, af)
 
-        # --- Update Display ---
-        pygame.display.flip()
-        clock.tick(30)
+            # --- Update Display ---
+            pygame.display.flip()
+
+        except Exception as e:
+             print(f"Error during drawing: {e}") # Catch errors during drawing
+
+        clock.tick(30) # FPS Cap
 
     pygame.quit()
     sys.exit()
 
 # --- Execution Start ---
 if __name__ == "__main__":
-    if not os.path.exists(FONT_FILE_PATH) and not any(pygame.font.match_font(f) for f in FALLBACK_FONTS if f):
-         print(f"錯誤: 字體文件 '{FONT_FILE_PATH}' 未找到，且無備選字體。")
-    elif not os.path.exists(FONT_FILE_PATH):
-         print(f"警告: 字體文件 '{FONT_FILE_PATH}' 未找到，嘗試備選字體。")
+    # Improved Font Check at Start
+    font_path_exists = os.path.exists(FONT_FILE_PATH)
+    fallback_available = any(pygame.font.match_font(f) for f in FALLBACK_FONTS if f)
+
+    if not font_path_exists and not fallback_available:
+         print(f"錯誤: 字體文件 '{FONT_FILE_PATH}' 未找到，且系統中找不到任何有效的備選字體 {FALLBACK_FONTS}。")
+         print("請確保字體文件存在或安裝至少一個備選字體。遊戲可能無法正常顯示文字。")
+         # Decide whether to exit or continue with default font attempt
+         # sys.exit("Font loading prerequisites not met.")
+    elif not font_path_exists:
+         print(f"警告: 字體文件 '{FONT_FILE_PATH}' 未找到。將嘗試使用系統備選字體。")
+
     main()
