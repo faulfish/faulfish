@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>即時熱點新聞</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>即時熱點新聞</h1>
+
+        <div class="params-section">
+            <h2>新聞參數設定</h2>
+            <form id="news-params-form">
+                <div class="param-group">
+                    <label for="country">國家/地區:</label>
+                    <select id="country" name="country">
+                        <option value="tw" {% if params.country == 'tw' %}selected{% endif %}>台灣</option>
+                        <option value="us" {% if params.country == 'us' %}selected{% endif %}>美國</option>
+                        <option value="jp" {% if params.country == 'jp' %}selected{% endif %}>日本</option>
+                        <option value="cn" {% if params.country == 'cn' %}selected{% endif %}>中國</option>
+                        <!-- 可以添加更多國家選項 -->
+                    </select>
+                </div>
+
+                <div class="param-group">
+                    <label for="category">類別:</label>
+                    <select id="category" name="category">
+                        <option value="general" {% if params.category == 'general' %}selected{% endif %}>一般</option>
+                        <option value="business" {% if params.category == 'business' %}selected{% endif %}>商業</option>
+                        <option value="technology" {% if params.category == 'technology' %}selected{% endif %}>科技</option>
+                        <option value="sports" {% if params.category == 'sports' %}selected{% endif %}>運動</option>
+                        <!-- 可以添加更多類別選項 -->
+                    </select>
+                </div>
+
+                <div class="param-group">
+                    <label for="pageSize">每頁新聞數量:</label>
+                    <input type="number" id="pageSize" name="pageSize" value="{{ params.pageSize }}" min="1" max="100">
+                </div>
+
+                <div class="param-group">
+                    <label for="sortBy">排序方式:</label>
+                    <select id="sortBy" name="sortBy">
+                        <option value="popularity" {% if params.sortBy == 'popularity' %}selected{% endif %}>熱度</option>
+                        <option value="relevancy" {% if params.sortBy == 'relevancy' %}selected{% endif %}>關聯性</option>
+                        <option value="publishedAt" {% if params.sortBy == 'publishedAt' %}selected{% endif %}>發布時間</option>
+                    </select>
+                </div>
+
+                <button type="submit">更新新聞</button>
+            </form>
+        </div>
+
+        <div id="status-message" class="status">正在載入新聞...</div>
+        <ul id="news-list">
+            <!-- 新聞項目將由 JavaScript 動態插入這裡 -->
+        </ul>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
