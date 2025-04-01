@@ -12,112 +12,22 @@
             "piece": "P",
             "captured": null,
             "notation": "兵三進一",
-            "time": 5.1,
+            "time": 5.18,
             "player": "red"
         },
         {
             "start": [
-                0,
-                2
-            ],
-            "end": [
-                2,
+                3,
                 4
-            ],
-            "piece": "e",
-            "captured": null,
-            "notation": "象3進5",
-            "time": 2.91,
-            "player": "black"
-        },
-        {
-            "start": [
-                9,
-                1
-            ],
-            "end": [
-                7,
-                2
-            ],
-            "piece": "H",
-            "captured": null,
-            "notation": "傌進七",
-            "time": 1.83,
-            "player": "red"
-        },
-        {
-            "start": [
-                2,
-                1
-            ],
-            "end": [
-                2,
-                2
-            ],
-            "piece": "c",
-            "captured": null,
-            "notation": "砲平3",
-            "time": 1.41,
-            "player": "black"
-        },
-        {
-            "start": [
-                7,
-                1
             ],
             "end": [
                 4,
-                1
+                4
             ],
-            "piece": "C",
+            "piece": "p",
             "captured": null,
-            "notation": "炮進三",
-            "time": 1.61,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                8
-            ],
-            "end": [
-                1,
-                8
-            ],
-            "piece": "r",
-            "captured": null,
-            "notation": "車進1",
-            "time": 2.48,
-            "player": "black"
-        },
-        {
-            "start": [
-                9,
-                7
-            ],
-            "end": [
-                7,
-                8
-            ],
-            "piece": "H",
-            "captured": null,
-            "notation": "傌進一",
-            "time": 1.76,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                7
-            ],
-            "end": [
-                2,
-                6
-            ],
-            "piece": "h",
-            "captured": null,
-            "notation": "馬進7",
-            "time": 1.59,
+            "notation": "卒5進1",
+            "time": 2.92,
             "player": "black"
         }
     ]
