@@ -317,7 +317,8 @@ def draw_info_panel(screen, game, font_small, font_medium):
         status_line_height = font_medium.get_height() if font_medium else 20
         # Calculate Y pos for status message, trying to center it vertically
         status_y = timer_y + (button_top_y - timer_y) // 2 - status_line_height // 2
-        status_y = max(status_y, timer_y + timer_line_height + 4) # Ensure below timers
+        # status_y = max(status_y, timer_y + timer_line_height + 4) # Ensure below timers
+        status_y = timer_y
 
         # Timers
         if game.game_state != GameState.ANALYSIS:
