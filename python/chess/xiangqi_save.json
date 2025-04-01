@@ -3,31 +3,61 @@
         {
             "start": [
                 6,
-                6
+                2
             ],
             "end": [
                 5,
-                6
+                2
             ],
             "piece": "P",
             "captured": null,
-            "notation": "兵三進一",
-            "time": 5.18,
+            "notation": "兵七進一",
+            "time": 5.5,
             "player": "red"
         },
         {
             "start": [
                 3,
-                4
+                2
             ],
             "end": [
                 4,
-                4
+                2
             ],
             "piece": "p",
             "captured": null,
-            "notation": "卒5進1",
-            "time": 2.92,
+            "notation": "卒3進1",
+            "time": 1.55,
+            "player": "black"
+        },
+        {
+            "start": [
+                7,
+                1
+            ],
+            "end": [
+                7,
+                2
+            ],
+            "piece": "C",
+            "captured": null,
+            "notation": "炮八平七",
+            "time": 2.91,
+            "player": "red"
+        },
+        {
+            "start": [
+                2,
+                1
+            ],
+            "end": [
+                2,
+                2
+            ],
+            "piece": "c",
+            "captured": null,
+            "notation": "砲2平3",
+            "time": 1.33,
             "player": "black"
         }
     ]
