@@ -94,9 +94,10 @@ def get_king_pos(board, color):
 
 def is_in_palace(r, c):
     if not (3 <= c <= 5): return False
-    return (0 <= r <= 2) or (7 <= r <= 9)
+    return (0 <= r <= 2) or (7 <= r <= 9) # Corrected upper bound for palace
 
 def get_palace_limits(color):
+    # Corrected red palace limits (bottom)
     return (7, 9) if color == 'red' else (0, 2)
 
 def is_across_river(r, color):
@@ -106,12 +107,10 @@ def is_across_river(r, color):
 def load_font(font_path, size, fallback_list):
     try:
         font = pygame.font.Font(font_path, size)
-        # print(f"成功載入字體: {font_path} (size {size})") # Optional: reduce console output
         return font
     except pygame.error as e:
         print(f"警告: 無法載入指定字體 '{font_path}': {e}")
         try:
-            # Filter out None from fallback list if present
             valid_fallbacks = [f for f in fallback_list if f]
             if not valid_fallbacks:
                  print(f"錯誤: 沒有有效的備選字體提供。")
@@ -278,57 +277,84 @@ class XiangqiGame:
         color = get_piece_color(piece)
         piece_type = piece.lower()
 
-        if piece_type == 'k':
+        if piece_type == 'k': # 將/帥 (King)
             pr_min, pr_max = get_palace_limits(color)
             for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]:
                 re, ce = r_start+dr, c_start+dc
-                if pr_min <= re <= pr_max and 3 <= ce <= 5: self._add_raw_move(moves, re, ce, current_board, color)
-        elif piece_type == 'a':
+                if pr_min <= re <= pr_max and 3 <= ce <= 5: # Stay within palace bounds
+                    self._add_raw_move(moves, re, ce, current_board, color)
+        elif piece_type == 'a': # 士/仕 (Advisor)
             pr_min, pr_max = get_palace_limits(color)
-            for dr, dc in [(1,1),(1,-1),(-1,1),(-1,-1)]:
+            for dr, dc in [(1,1),(1,-1),(-1,1),(-1,-1)]: # Diagonal moves only
                 re, ce = r_start+dr, c_start+dc
-                if pr_min <= re <= pr_max and 3 <= ce <= 5: self._add_raw_move(moves, re, ce, current_board, color)
-        elif piece_type == 'e':
-            river_row = 4 if color == 'red' else 5
-            for dr, dc in [(2,2),(2,-2),(-2,2),(-2,-2)]:
+                if pr_min <= re <= pr_max and 3 <= ce <= 5: # Stay within palace bounds
+                    self._add_raw_move(moves, re, ce, current_board, color)
+        elif piece_type == 'e': # 象/相 (Elephant)
+            # --- CORRECTED LOGIC ---
+            for dr, dc in [(2,2),(2,-2),(-2,2),(-2,-2)]: # 走 "田" 字
                 re, ce = r_start+dr, c_start+dc
-                if (color == 'red' and re > river_row) or (color == 'black' and re < river_row): continue
-                rb, cb = r_start+dr//2, c_start+dc//2
-                if is_valid_coord(rb, cb) and current_board[rb][cb] is None: self._add_raw_move(moves, re, ce, current_board, color)
-        elif piece_type == 'h':
-            for dr, dc, br, bc in [(-2,-1,-1,0),(-2,1,-1,0),(2,-1,1,0),(2,1,1,0), (-1,-2,0,-1),(1,-2,0,-1),(-1,2,0,1),(1,2,0,1)]:
+
+                # 1. Basic Coordinate Check (Target must be on board)
+                if not is_valid_coord(re, ce):
+                    continue
+
+                # 2. River Crossing Check (Cannot cross the river)
+                if color == 'red' and re <= 4: # Red Elephant tries to move to row 4 or above (crosses river)
+                    continue
+                if color == 'black' and re >= 5: # Black Elephant tries to move to row 5 or below (crosses river)
+                    continue
+
+                # 3. Blocking Check (Elephant eye must be empty)
+                rb, cb = r_start + dr // 2, c_start + dc // 2 # Calculate the 'eye' position
+                # Check if eye coordinate is valid (mostly redundant if re, ce is valid, but safe)
+                # and if the eye position on the board is empty
+                if is_valid_coord(rb, cb) and current_board[rb][cb] is None:
+                    # If all checks pass, add the move (handles empty or capture at destination)
+                    self._add_raw_move(moves, re, ce, current_board, color)
+            # --- END OF CORRECTION ---
+        elif piece_type == 'h': # 馬 (Horse)
+            for dr, dc, br, bc in [(-2,-1,-1,0),(-2,1,-1,0),(2,-1,1,0),(2,1,1,0), # Vertical L-moves
+                                   (-1,-2,0,-1),(1,-2,0,-1),(-1,2,0,1),(1,2,0,1)]: # Horizontal L-moves
                 re, ce = r_start+dr, c_start+dc
-                rb, cb = r_start+br, c_start+bc
-                if is_valid_coord(rb, cb) and current_board[rb][cb] is None: self._add_raw_move(moves, re, ce, current_board, color)
-        elif piece_type == 'r': # Rook - Corrected multi-line version
-            for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]:
+                rb, cb = r_start+br, c_start+bc # Calculate the blocking position
+                # Check if blocking position is valid and empty
+                if is_valid_coord(rb, cb) and current_board[rb][cb] is None:
+                    self._add_raw_move(moves, re, ce, current_board, color)
+        elif piece_type == 'r': # 車 (Rook)
+            for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]: # Horizontal and Vertical
                 rt, ct = r_start, c_start
                 while True:
                     rt, ct = rt + dr, ct + dc
+                    # _add_raw_move checks validity, handles empty/capture, and returns False if blocked
                     if not self._add_raw_move(moves, rt, ct, current_board, color):
-                        break
-        elif piece_type == 'c': # Cannon
-            for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]:
+                        break # Stop in this direction if blocked or out of bounds
+        elif piece_type == 'c': # 炮/砲 (Cannon)
+            for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]: # Horizontal and Vertical
                 rt, ct = r_start, c_start
-                jumped = False
+                jumped = False # Flag to indicate if we've jumped over one piece
                 while True:
                     rt, ct = rt + dr, ct + dc
-                    if not is_valid_coord(rt, ct): break
+                    if not is_valid_coord(rt, ct): break # Out of bounds
                     target = current_board[rt][ct]
-                    if not jumped:
-                        if target is None: moves.append((rt, ct))
-                        else: jumped = True
-                    else: # Have jumped
-                        if target is not None:
-                            if get_piece_color(target) != color: moves.append((rt, ct))
-                            break # Stop after hitting second piece
-                        # else: continue if empty after jump
-        elif piece_type == 'p': # Pawn
-            dr_fwd = -1 if color == 'red' else 1
-            self._add_raw_move(moves, r_start+dr_fwd, c_start, current_board, color)
+                    if not jumped: # Before jumping
+                        if target is None:
+                            moves.append((rt, ct)) # Move to empty square
+                        else:
+                            jumped = True # Found the first piece, now looking for a target to capture
+                    else: # After jumping over the first piece
+                        if target is not None: # Found a second piece
+                            if get_piece_color(target) != color: # It's an opponent's piece
+                                moves.append((rt, ct)) # Capture the piece
+                            break # Stop searching in this direction (whether captured or blocked by own piece)
+                        # else: continue searching if the square after jump is empty
+        elif piece_type == 'p': # 兵/卒 (Pawn)
+            dr_fwd = -1 if color == 'red' else 1 # Red moves up (row decreases), Black moves down (row increases)
+            # Forward move
+            self._add_raw_move(moves, r_start + dr_fwd, c_start, current_board, color)
+            # Sideways moves (only after crossing the river)
             if is_across_river(r_start, color):
-                self._add_raw_move(moves, r_start, c_start+1, current_board, color)
-                self._add_raw_move(moves, r_start, c_start-1, current_board, color)
+                self._add_raw_move(moves, r_start, c_start + 1, current_board, color)
+                self._add_raw_move(moves, r_start, c_start - 1, current_board, color)
         return moves
 
     def get_all_valid_moves(self, player_color):
@@ -408,23 +434,22 @@ class XiangqiGame:
         for i in range(target_step_index + 1):
             if i < len(self.move_log):
                  move_data = self.move_log[i]
-                 # Make sure start/end keys exist before accessing
                  if "start" not in move_data or "end" not in move_data or "piece" not in move_data:
                       print(f"警告: 第 {i+1} 步棋譜數據不完整，跳過。")
                       continue
                  r_start, c_start = move_data["start"]; r_end, c_end = move_data["end"]; piece = move_data["piece"]
-                 # Validate coordinates and piece match before applying
                  if is_valid_coord(r_start, c_start) and is_valid_coord(r_end, c_end) and \
                     self.analysis_board_state[r_start][c_start] == piece:
                      self.analysis_board_state[r_end][c_end] = piece
                      self.analysis_board_state[r_start][c_start] = EMPTY
                      current_internal_step = i
                  else:
-                      print(f"警告: 在重建棋譜第 {i+1} 步時發現不一致 ({r_start},{c_start})={self.analysis_board_state[r_start][c_start]} vs {piece}。")
+                      expected_piece = self.analysis_board_state[r_start][c_start]
+                      print(f"警告: 在重建棋譜第 {i+1} 步 ({r_start},{c_start} to {r_end},{c_end}) 時發現不一致. "
+                            f"預期移動棋子: {piece}, 但棋盤上是: {expected_piece}。停止重建。")
                       self.analysis_current_step = current_internal_step # Stop at last valid step
                       return # Stop reconstruction
             else:
-                # This should not happen if target_step_index is calculated correctly
                 print(f"警告: 嘗試重建棋步 {i+1}, 但棋譜只有 {len(self.move_log)} 步.")
                 break
         self.analysis_current_step = current_internal_step # Update step after successful reconstruction
@@ -445,7 +470,11 @@ class XiangqiGame:
              move_data = self.move_log[total_moves - 1]
              notation = move_data.get("notation", "無記錄")
              player = "紅方" if move_data.get("player") == 'red' else "黑方"
-             return f"分析: 第 {total_moves}/{total_moves} 步 ({player}) (終局)\n{notation}"
+             # Check final game state (e.g., checkmate) from the actual game ending if available
+             # For now, just indicate it's the end
+             # A more advanced version could check if the last state was checkmate/stalemate
+             final_status = "(終局)" # Default end status
+             return f"分析: 第 {total_moves}/{total_moves} 步 ({player}) {final_status}\n{notation}"
         else: # Error state or empty log
              return f"分析: 無棋步記錄\n(0/0 步)"
 
@@ -478,8 +507,6 @@ def draw_text_wrapped(surface, text, rect, font, color):
                     line_rendered = True
                 # If the single word itself is too long, render it truncated or handle differently
                 elif font.size(test_word)[0] >= rect.width:
-                    # Render what fits of the long word
-                    # This part needs refinement for better truncation
                     temp_word = test_word
                     while font.size(temp_word)[0] >= rect.width and len(temp_word)>0:
                         temp_word = temp_word[:-1]
@@ -488,7 +515,8 @@ def draw_text_wrapped(surface, text, rect, font, color):
                          surface.blit(image, (rect.left, y))
                          y += line_spacing
                          line_rendered = True
-                    words.pop(0) # Move past the long word
+                    # After rendering the truncated word, still need to pop it
+                    words.pop(0)
                     current_line = '' # Ensure reset
                 else: # current_line is empty, but the word should fit
                      current_line = test_word + ' '
@@ -503,19 +531,20 @@ def draw_text_wrapped(surface, text, rect, font, color):
 
 # draw_board
 def draw_board(screen, river_font):
-    # Fill only the board background area on the left
-    screen.fill(BOARD_COLOR_BG, (0, 0, BOARD_AREA_WIDTH, SCREEN_HEIGHT))
+    screen.fill(BOARD_COLOR_BG, (0, 0, BOARD_AREA_WIDTH, BOARD_AREA_HEIGHT)) # Fill just the board area
     board_rect = pygame.Rect(0, 0, BOARD_AREA_WIDTH, BOARD_AREA_HEIGHT)
     half_sq = SQUARE_SIZE // 2
     RIVER_TOP_ROW = 4; RIVER_BOTTOM_ROW = 5
 
-    # Vertical Lines (Corrected for River)
+    # Vertical Lines (Draw in two parts to skip the river visually)
     for c in range(BOARD_WIDTH):
         x = c * SQUARE_SIZE + half_sq
+        # Draw line from top to river
         pygame.draw.line(screen, LINE_COLOR_DARK, (x, half_sq), (x, RIVER_TOP_ROW * SQUARE_SIZE + half_sq), LINE_THICKNESS_NORMAL)
+        # Draw line from river bottom to board bottom
         pygame.draw.line(screen, LINE_COLOR_DARK, (x, RIVER_BOTTOM_ROW * SQUARE_SIZE + half_sq), (x, (BOARD_HEIGHT - 1) * SQUARE_SIZE + half_sq), LINE_THICKNESS_NORMAL)
 
-    # Horizontal Lines
+    # Horizontal Lines (Draw all the way across)
     for r in range(BOARD_HEIGHT):
         y = r * SQUARE_SIZE + half_sq; start_x = half_sq; end_x = (BOARD_WIDTH - 1) * SQUARE_SIZE + half_sq
         pygame.draw.line(screen, LINE_COLOR_DARK, (start_x, y), (end_x, y), LINE_THICKNESS_NORMAL)
@@ -523,37 +552,64 @@ def draw_board(screen, river_font):
     # Outer Border
     pygame.draw.rect(screen, LINE_COLOR_DARK, (half_sq, half_sq, (BOARD_WIDTH - 1) * SQUARE_SIZE, (BOARD_HEIGHT - 1) * SQUARE_SIZE), LINE_THICKNESS_OUTER)
 
-    # Palaces
-    palace_coords = [ ((3*SQUARE_SIZE+half_sq, half_sq), (5*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq)), ((5*SQUARE_SIZE+half_sq, half_sq), (3*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq)), ((3*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (5*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq)), ((5*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (3*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq)), ]
-    for start, end in palace_coords: pygame.draw.line(screen, LINE_COLOR_DARK, start, end, LINE_THICKNESS_NORMAL)
+    # Palaces (Diagonal lines)
+    # Top Palace (Black)
+    pygame.draw.line(screen, LINE_COLOR_DARK, (3*SQUARE_SIZE+half_sq, half_sq), (5*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+    pygame.draw.line(screen, LINE_COLOR_DARK, (5*SQUARE_SIZE+half_sq, half_sq), (3*SQUARE_SIZE+half_sq, 2*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+    # Bottom Palace (Red) - Corrected Y coordinates
+    pygame.draw.line(screen, LINE_COLOR_DARK, (3*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (5*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
+    pygame.draw.line(screen, LINE_COLOR_DARK, (5*SQUARE_SIZE+half_sq, 7*SQUARE_SIZE+half_sq), (3*SQUARE_SIZE+half_sq, 9*SQUARE_SIZE+half_sq), LINE_THICKNESS_NORMAL)
 
     # River Text
     if river_font:
         texts = [("楚", 1.5), ("河", 2.5), ("漢", 5.5), ("界", 6.5)]
-        river_y = RIVER_TOP_ROW * SQUARE_SIZE + half_sq + (SQUARE_SIZE / 2)
+        # Calculate Y position exactly in the middle of the river gap
+        river_y = RIVER_TOP_ROW * SQUARE_SIZE + SQUARE_SIZE # Center between row 4 and 5 lines
         for text, col_pos in texts:
              try:
                  surf = river_font.render(text, True, RIVER_TEXT_COLOR)
-                 text_x = col_pos * SQUARE_SIZE + half_sq
-                 screen.blit(surf, surf.get_rect(center=(text_x, river_y)))
-             except Exception as e: print(f"Error rendering river text '{text}': {e}") # Catch font render errors
+                 # Use float positioning for better centering between grid lines
+                 text_x = (col_pos + 0.5) * SQUARE_SIZE # Center text horizontally in its "column"
+                 screen.blit(surf, surf.get_rect(center=(int(text_x), int(river_y))))
+             except Exception as e: print(f"Error rendering river text '{text}': {e}")
 
     # Cannon/Pawn Markers
     pawn_marks_c, pawn_marks_r = [0, 2, 4, 6, 8], [3, 6]
     cannon_marks_c, cannon_marks_r = [1, 7], [2, 7]
-    mark_len, mark_offset = SQUARE_SIZE // 9, SQUARE_SIZE // 12
+    mark_len, mark_offset = SQUARE_SIZE // 9, SQUARE_SIZE // 12 # Adjust size/offset as needed
     all_marks_coords = set()
-    [(all_marks_coords.add((c, r))) for r in pawn_marks_r for c in pawn_marks_c]
-    [(all_marks_coords.add((c, r))) for r in cannon_marks_r for c in cannon_marks_c]
+    # Add pawn marker coords
+    for r in pawn_marks_r:
+        for c in pawn_marks_c: all_marks_coords.add((c, r))
+    # Add cannon marker coords
+    for r in cannon_marks_r:
+        for c in cannon_marks_c: all_marks_coords.add((c, r))
+
     for c, r in all_marks_coords:
-         x, y = c * SQUARE_SIZE + half_sq, r * SQUARE_SIZE + half_sq
-         corner_markers = { (-1, -1): [(-mark_len, 0), (0, -mark_len)], ( 1, -1): [( mark_len, 0), (0, -mark_len)], (-1,  1): [(-mark_len, 0), (0,  mark_len)], ( 1,  1): [( mark_len, 0), (0,  mark_len)] }
+         x, y = c * SQUARE_SIZE + half_sq, r * SQUARE_SIZE + half_sq # Center of the square/intersection
+         # Define the four corners relative to the center (dx, dy multipliers for offset)
+         corner_markers = {
+             (-1, -1): [(-mark_len, 0), (0, -mark_len)], # Top-Left corner: lines go right and down
+             ( 1, -1): [( mark_len, 0), (0, -mark_len)], # Top-Right corner: lines go left and down
+             (-1,  1): [(-mark_len, 0), (0,  mark_len)], # Bottom-Left corner: lines go right and up
+             ( 1,  1): [( mark_len, 0), (0,  mark_len)]  # Bottom-Right corner: lines go left and up
+         }
          for (cdx, cdy), lines in corner_markers.items():
-             if c == 0 and cdx < 0: continue
-             if c == BOARD_WIDTH - 1 and cdx > 0: continue
-             corner_x = x + cdx * mark_offset; corner_y = y + cdy * mark_offset
+             # Skip drawing markers that would go off the board edge
+             if c == 0 and cdx < 0: continue # Skip left-pointing markers on left edge
+             if c == BOARD_WIDTH - 1 and cdx > 0: continue # Skip right-pointing markers on right edge
+             if r == 0 and cdy < 0: continue # Skip up-pointing markers on top edge (less common for these points)
+             if r == BOARD_HEIGHT - 1 and cdy > 0: continue # Skip down-pointing markers on bottom edge
+
+             # Calculate the corner point from where the two small lines originate
+             corner_x = x + cdx * mark_offset
+             corner_y = y + cdy * mark_offset
+
+             # Draw the two small lines for this corner
              for (ldx, ldy) in lines:
-                 end_x = corner_x + ldx; end_y = corner_y + ldy
+                 # Calculate the end point of the small line
+                 end_x = corner_x + ldx
+                 end_y = corner_y + ldy
                  pygame.draw.line(screen, LINE_COLOR_DARK, (corner_x, corner_y), (end_x, end_y), LINE_THICKNESS_NORMAL)
 
 # draw_pieces
@@ -573,7 +629,7 @@ def draw_pieces(screen, board, piece_font):
                     pygame.draw.circle(screen, LINE_COLOR_DARK, (center_x, center_y), radius, PIECE_BORDER_WIDTH)
                     text_surf = piece_font.render(char, True, color)
                     screen.blit(text_surf, text_surf.get_rect(center=(center_x, center_y)))
-                except Exception as e: print(f"Error drawing piece {piece} at ({r},{c}): {e}") # Catch drawing errors
+                except Exception as e: print(f"Error drawing piece {piece} at ({r},{c}): {e}")
 
 
 # draw_highlights
@@ -591,9 +647,10 @@ def draw_highlights(screen, selected_pos, valid_moves, selected_surf, move_surf,
 # draw_info_panel (Below board)
 def draw_info_panel(screen, game, font_small, font_large):
     save_btn_rect, load_btn_rect = None, None
-    if game.game_state != GameState.ANALYSIS:
-        panel_rect = pygame.Rect(0, BOARD_AREA_HEIGHT, BOARD_AREA_WIDTH, INFO_PANEL_HEIGHT)
-        pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect)
+    panel_rect = pygame.Rect(0, BOARD_AREA_HEIGHT, BOARD_AREA_WIDTH, INFO_PANEL_HEIGHT)
+    pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect) # Draw panel background
+
+    if game.game_state != GameState.ANALYSIS: # Only show timers/buttons if not in analysis
         if not font_small or not font_large: return save_btn_rect, load_btn_rect
         try: # Timers
             rm, rs = divmod(int(game.timers['red']), 60)
@@ -603,74 +660,94 @@ def draw_info_panel(screen, game, font_small, font_large):
             screen.blit(t_red, (panel_rect.left + 20, panel_rect.top + 15))
             screen.blit(t_black, (panel_rect.right - t_black.get_width() - 20, panel_rect.top + 15))
         except Exception as e: print(f"Error rendering timers: {e}")
+
         try: # Status Message
             status_surf = font_large.render(game.status_message, True, BLACK_COLOR)
             screen.blit(status_surf, status_surf.get_rect(center=(panel_rect.centerx, panel_rect.top + 55)))
         except Exception as e: print(f"Error rendering status message: {e}")
-        # Buttons
+
+        # Buttons (Save/Load)
         btn_h, btn_w, btn_padding = 35, 90, 15
-        btn_y = panel_rect.bottom - btn_h - 10
+        btn_y = panel_rect.bottom - btn_h - 10 # Position buttons near bottom of info panel
         save_btn_rect = pygame.Rect(panel_rect.left + 20, btn_y, btn_w, btn_h)
         load_btn_rect = pygame.Rect(save_btn_rect.right + btn_padding, btn_y, btn_w, btn_h)
         try:
             pygame.draw.rect(screen, BUTTON_COLOR, save_btn_rect, border_radius=6)
             save_txt = font_small.render("儲存棋譜", True, BUTTON_TEXT_COLOR)
             screen.blit(save_txt, save_txt.get_rect(center=save_btn_rect.center))
+
             pygame.draw.rect(screen, BUTTON_COLOR, load_btn_rect, border_radius=6)
             load_txt = font_small.render("載入棋譜", True, BUTTON_TEXT_COLOR)
             screen.blit(load_txt, load_txt.get_rect(center=load_btn_rect.center))
         except Exception as e: print(f"Error rendering buttons: {e}")
-    return save_btn_rect, load_btn_rect
+
+    return save_btn_rect, load_btn_rect # Return rects (might be None if in analysis)
 
 # draw_right_panel
 def draw_right_panel(screen, game, font_small, font_large, analysis_font):
     buttons = {}
     panel_rect = pygame.Rect(BOARD_AREA_WIDTH, 0, ANALYSIS_PANEL_WIDTH, SCREEN_HEIGHT)
-    pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect) # Background
+    pygame.draw.rect(screen, INFO_BG_COLOR, panel_rect) # Background for the right panel
 
     if game.game_state == GameState.ANALYSIS:
-        if not analysis_font or not font_small: return buttons
+        if not analysis_font or not font_small: return buttons # Need fonts to draw content
 
         # Display Analysis Status Info (using status message from game object)
-        status_text = game.status_message # Use the message updated by navigation
-        status_rect = pygame.Rect(panel_rect.left + 15, panel_rect.top + 20, panel_rect.width - 30, 150)
+        status_text = game.status_message # Get the pre-formatted status message
+        # Define area for the status text near the top
+        status_rect = pygame.Rect(panel_rect.left + 15, panel_rect.top + 20, panel_rect.width - 30, 150) # Generous height for wrapping
         try:
             draw_text_wrapped(screen, status_text, status_rect, font_small, BLACK_COLOR)
         except Exception as e: print(f"Error rendering analysis status: {e}")
 
-        # Draw Navigation Buttons (Vertically)
+        # Draw Navigation Buttons (Vertically below the status text)
         button_texts = {"first":"<< 首步", "prev":"< 上一步", "next":"下一步 >", "last":"末步 >>"}
-        btn_w, btn_h, v_space = 150, 40, 15
-        # Adjust starting Y based on where text wrapping ended, or fixed position
-        start_y = status_rect.bottom + 30 # Start buttons below text area
+        btn_w, btn_h, v_space = 150, 40, 15 # Button dimensions and vertical spacing
+        # Estimate where text ended, or use a fixed starting point
+        # A more robust way would involve getting the final y from draw_text_wrapped
+        start_y = status_rect.top + 100 # Adjusted starting Y for buttons, leave space for text
         current_y = start_y
+
         try:
             for key, txt in button_texts.items():
-                btn_x = panel_rect.centerx - btn_w // 2
+                btn_x = panel_rect.centerx - btn_w // 2 # Center buttons horizontally
                 rect = pygame.Rect(btn_x, current_y, btn_w, btn_h)
-                # Add bounds check
-                if rect.bottom > panel_rect.bottom - 10: # Check if button goes off panel
-                    print("Warning: Not enough space for all analysis buttons.")
+
+                # Basic check to prevent drawing off the bottom of the panel
+                if rect.bottom > panel_rect.bottom - 10:
+                    print("警告: 分析面板空間不足，無法繪製所有按鈕。")
                     break # Stop drawing buttons if out of space
+
                 pygame.draw.rect(screen, BUTTON_COLOR, rect, border_radius=6)
                 surf = analysis_font.render(txt, True, BUTTON_TEXT_COLOR)
                 screen.blit(surf, surf.get_rect(center=rect.center))
-                buttons[key] = rect
-                current_y += btn_h + v_space
+                buttons[key] = rect # Store the button rect for click detection
+                current_y += btn_h + v_space # Move down for the next button
         except Exception as e: print(f"Error rendering analysis buttons: {e}")
-    return buttons
+    else:
+        # Optional: Draw something else in the right panel when not in analysis mode
+        # e.g., a logo, game title, or leave it blank (as it is now)
+        pass
+
+    return buttons # Return the dictionary of button rects (might be empty)
 
 # get_clicked_square
 def get_clicked_square(pos):
     x, y = pos
+    # Check if click is within the board area
     if not (0 <= x < BOARD_AREA_WIDTH and 0 <= y < BOARD_AREA_HEIGHT): return None
-    margin = SQUARE_SIZE * CLICK_MARGIN_RATIO
+    # Determine column and row based on square size
     col = int(x // SQUARE_SIZE)
     row = int(y // SQUARE_SIZE)
+    # Calculate center of the intersection point for this col/row
     center_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
     center_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
-    if abs(x - center_x) < margin and abs(y - center_y) < margin: return row, col
-    else: return None
+    # Check if click is close enough to the intersection center
+    margin = SQUARE_SIZE * CLICK_MARGIN_RATIO # Click target radius around intersection
+    if abs(x - center_x) < margin and abs(y - center_y) < margin:
+        return row, col
+    else:
+        return None # Click was on the board but not near an intersection
 
 # --- Main Game Loop ---
 def main():
@@ -692,7 +769,6 @@ def main():
 
     # Critical Font Check
     if not piece_font: print("錯誤: 主要棋子字體無法載入，程式無法繼續。"); pygame.quit(); sys.exit()
-    # Warnings for non-critical fonts
     if not info_font_small: print("警告: 小信息字體無法載入。")
     if not info_font_large: print("警告: 大信息字體無法載入。")
     if not river_font: print("警告: 河流字體無法載入。")
@@ -702,19 +778,20 @@ def main():
     # --- Pre-render Highlight Surfaces ---
     selected_highlight_surf = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
     pygame.draw.circle(selected_highlight_surf, SELECTED_COLOR, (SQUARE_SIZE // 2, SQUARE_SIZE // 2), SQUARE_SIZE // 2 - 3)
+
     move_marker_radius = SQUARE_SIZE // 8
     move_highlight_surf = pygame.Surface((move_marker_radius * 2, move_marker_radius * 2), pygame.SRCALPHA)
     pygame.draw.circle(move_highlight_surf, HIGHLIGHT_COLOR, (move_marker_radius, move_marker_radius), move_marker_radius)
     # ---
 
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Python Xiangqi - 象棋 (右側面板)")
+    pygame.display.set_caption("Python Xiangqi - 象棋")
     clock = pygame.time.Clock()
     game = XiangqiGame()
 
     running = True
-    save_btn_rect, load_btn_rect = None, None
-    analysis_buttons = {}
+    save_btn_rect, load_btn_rect = None, None # Initialize button rects
+    analysis_buttons = {} # Initialize analysis button rects
 
     while running:
         # === Event Handling ===
@@ -722,39 +799,53 @@ def main():
             if event.type == pygame.QUIT: running = False
 
             # --- Mouse Click Handling ---
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # Left mouse click
                 pos = pygame.mouse.get_pos()
-                clicked_ui_element = False
+                clicked_ui_element = False # Flag to prevent board click if UI was clicked
 
-                # 1. Check UI Buttons based on state
+                # 1. Check UI Buttons FIRST (priority over board clicks)
+                # Check Analysis Panel Buttons (Right Side) - Only if in analysis mode
                 if game.game_state == GameState.ANALYSIS:
-                    # Check RIGHT PANEL buttons
                     for key, rect in analysis_buttons.items():
-                        if rect and rect.collidepoint(pos): # Check if rect exists
+                        if rect and rect.collidepoint(pos):
                             game.analysis_navigate(key)
-                            clicked_ui_element = True; break
-                else: # PLAYING, CHECKMATE, STALEMATE
-                    # Check BOTTOM PANEL buttons
+                            clicked_ui_element = True; break # Stop checking other buttons
+
+                # Check Info Panel Buttons (Bottom) - Only if NOT in analysis mode
+                if not clicked_ui_element and game.game_state != GameState.ANALYSIS:
                     if save_btn_rect and save_btn_rect.collidepoint(pos):
-                        game.save_game(); clicked_ui_element = True
+                        game.save_game()
+                        clicked_ui_element = True
                     elif load_btn_rect and load_btn_rect.collidepoint(pos):
-                        if game.load_game(): # Load switches state to ANALYSIS
-                            analysis_buttons = {} # Reset analysis buttons
-                            save_btn_rect, load_btn_rect = None, None # Clear bottom buttons
+                        if game.load_game(): # load_game switches state if successful
+                            # Clear button rects as panels will redraw
+                            analysis_buttons = {}
+                            save_btn_rect, load_btn_rect = None, None
                         clicked_ui_element = True
 
-                # 2. Check Board Click (Only if playing and no UI clicked)
+                # 2. Check Board Click (Only if playing and no UI element was clicked)
                 if not clicked_ui_element and game.game_state == GameState.PLAYING:
-                    coords = get_clicked_square(pos)
+                    coords = get_clicked_square(pos) # Get board coords from pixel pos
                     if coords:
                         r, c = coords
-                        if game.selected_piece_pos is None: game.select_piece(r, c)
+                        if game.selected_piece_pos is None:
+                            # No piece selected, try to select one
+                            game.select_piece(r, c)
                         else:
-                            if (r, c) in game.valid_moves: game.make_move(r, c)
+                            # Piece already selected, check if click is a valid move
+                            if (r, c) in game.valid_moves:
+                                game.make_move(r, c) # Make the move
+                            # Check if clicked on another piece of the same color
                             elif game.board[r][c] is not None and get_piece_color(game.board[r][c]) == game.current_player:
-                                game.select_piece(r, c)
-                            else: game.selected_piece_pos = None; game.valid_moves = []
-                    else: game.selected_piece_pos = None; game.valid_moves = []
+                                game.select_piece(r, c) # Select the new piece
+                            else:
+                                # Clicked on empty square (not valid move) or opponent piece
+                                game.selected_piece_pos = None # Deselect
+                                game.valid_moves = []
+                    else:
+                        # Clicked outside any valid intersection point
+                        game.selected_piece_pos = None # Deselect
+                        game.valid_moves = []
 
             # --- Keyboard Handling (Analysis Mode Navigation) ---
             if event.type == pygame.KEYDOWN and game.game_state == GameState.ANALYSIS:
@@ -767,25 +858,31 @@ def main():
         if game.game_state == GameState.PLAYING: game.update_timers()
 
         # === Drawing ===
-        screen.fill(INFO_BG_COLOR) # Fill entire background with panel color first
+        screen.fill(INFO_BG_COLOR) # Fill entire background first
 
-        # Determine board state to draw
+        # Determine which board state to draw based on game mode
         board_to_draw = game.analysis_board_state if game.game_state == GameState.ANALYSIS else game.board
 
-        # Draw Left Side (Board Area)
-        draw_board(screen, river_font) # draw_board now fills its own BG
-        if board_to_draw: draw_pieces(screen, board_to_draw, piece_font)
+        # --- Draw Board Area (Left Side) ---
+        draw_board(screen, river_font) # Draws board lines and background
+        if board_to_draw: draw_pieces(screen, board_to_draw, piece_font) # Draw pieces on the current board state
+
+        # Draw highlights only during active play
         if game.game_state == GameState.PLAYING:
             draw_highlights(screen, game.selected_piece_pos, game.valid_moves,
                             selected_highlight_surf, move_highlight_surf, move_marker_radius)
 
-        # Draw Bottom Panel (Below Board - content only drawn if not analysis)
+        # --- Draw Info Panel (Bottom) ---
+        # This function draws the background and content (timers, status, buttons) if NOT analysis mode
+        # It returns the button rects which are needed for click detection
         save_btn_rect, load_btn_rect = draw_info_panel(screen, game, info_font_small, info_font_large)
 
-        # Draw Right Panel (Background always, content only if analysis)
+        # --- Draw Analysis Panel (Right Side) ---
+        # This function draws the background and content (status, nav buttons) ONLY IF analysis mode
+        # It returns the analysis button rects needed for click detection
         analysis_buttons = draw_right_panel(screen, game, info_font_small, info_font_large, analysis_font)
 
-        # Update the display
+        # Update the full display
         pygame.display.flip()
         clock.tick(30) # Limit FPS
 
@@ -799,7 +896,8 @@ if __name__ == "__main__":
         print(f"錯誤: 主要字體文件未找到於 '{FONT_FILE_PATH}'")
         print("請確認 'Noto Sans SC' 資料夾 (包含 NotoSansSC-VariableFont_wght.ttf 文件)")
         print("位於此 Python 腳本所在的相同目錄中，或者修改 FONT_FILE_PATH 常量。")
+        # Optional: Provide a way to exit gracefully or try fallback without the specific file
+        # sys.exit(1) # Exit if font is absolutely critical and not found
     else:
-        # Ensure fonts are loaded before Pygame display initialization if needed elsewhere
-        # Or handle font loading errors more gracefully inside main()
+        print(f"找到字體文件: {FONT_FILE_PATH}")
         main()
