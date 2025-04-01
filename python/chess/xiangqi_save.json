@@ -2,62 +2,32 @@
     "move_log": [
         {
             "start": [
-                9,
+                6,
+                6
+            ],
+            "end": [
+                5,
+                6
+            ],
+            "piece": "P",
+            "captured": null,
+            "notation": "兵三進一",
+            "time": 5.1,
+            "player": "red"
+        },
+        {
+            "start": [
+                0,
                 2
             ],
             "end": [
-                7,
-                4
-            ],
-            "piece": "E",
-            "captured": null,
-            "notation": "相(9,2)-(7,4)",
-            "time": 6.62,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                6
-            ],
-            "end": [
                 2,
-                8
+                4
             ],
             "piece": "e",
             "captured": null,
-            "notation": "象(0,6)-(2,8)",
-            "time": 2.14,
-            "player": "black"
-        },
-        {
-            "start": [
-                7,
-                7
-            ],
-            "end": [
-                7,
-                6
-            ],
-            "piece": "C",
-            "captured": null,
-            "notation": "炮(7,7)-(7,6)",
-            "time": 3.83,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                7
-            ],
-            "end": [
-                1,
-                5
-            ],
-            "piece": "h",
-            "captured": null,
-            "notation": "馬(0,7)-(1,5)",
-            "time": 3.06,
+            "notation": "象3進5",
+            "time": 2.91,
             "player": "black"
         },
         {
@@ -67,132 +37,12 @@
             ],
             "end": [
                 7,
-                0
+                2
             ],
             "piece": "H",
             "captured": null,
-            "notation": "傌(9,1)-(7,0)",
-            "time": 4.14,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                0
-            ],
-            "end": [
-                2,
-                0
-            ],
-            "piece": "r",
-            "captured": null,
-            "notation": "車(0,0)-(2,0)",
-            "time": 4.15,
-            "player": "black"
-        },
-        {
-            "start": [
-                6,
-                6
-            ],
-            "end": [
-                5,
-                6
-            ],
-            "piece": "P",
-            "captured": null,
-            "notation": "兵(6,6)-(5,6)",
-            "time": 3.58,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                2
-            ],
-            "end": [
-                2,
-                4
-            ],
-            "piece": "e",
-            "captured": null,
-            "notation": "象(0,2)-(2,4)",
-            "time": 4.3,
-            "player": "black"
-        },
-        {
-            "start": [
-                6,
-                2
-            ],
-            "end": [
-                5,
-                2
-            ],
-            "piece": "P",
-            "captured": null,
-            "notation": "兵(6,2)-(5,2)",
-            "time": 2.06,
-            "player": "red"
-        },
-        {
-            "start": [
-                3,
-                2
-            ],
-            "end": [
-                4,
-                2
-            ],
-            "piece": "p",
-            "captured": null,
-            "notation": "卒(3,2)-(4,2)",
-            "time": 6.53,
-            "player": "black"
-        },
-        {
-            "start": [
-                9,
-                6
-            ],
-            "end": [
-                7,
-                8
-            ],
-            "piece": "E",
-            "captured": null,
-            "notation": "相(9,6)-(7,8)",
-            "time": 5.7,
-            "player": "red"
-        },
-        {
-            "start": [
-                1,
-                5
-            ],
-            "end": [
-                2,
-                3
-            ],
-            "piece": "h",
-            "captured": null,
-            "notation": "馬(1,5)-(2,3)",
-            "time": 3.72,
-            "player": "black"
-        },
-        {
-            "start": [
-                7,
-                6
-            ],
-            "end": [
-                3,
-                6
-            ],
-            "piece": "C",
-            "captured": "p",
-            "notation": "炮(7,6)-(3,6)x卒",
-            "time": 8.3,
+            "notation": "傌進七",
+            "time": 1.83,
             "player": "red"
         },
         {
@@ -201,73 +51,43 @@
                 1
             ],
             "end": [
-                6,
-                1
+                2,
+                2
             ],
             "piece": "c",
             "captured": null,
-            "notation": "砲(2,1)-(6,1)",
-            "time": 4.22,
+            "notation": "砲平3",
+            "time": 1.41,
             "player": "black"
         },
         {
             "start": [
-                6,
-                4
-            ],
-            "end": [
-                5,
-                4
-            ],
-            "piece": "P",
-            "captured": null,
-            "notation": "兵(6,4)-(5,4)",
-            "time": 5.6,
-            "player": "red"
-        },
-        {
-            "start": [
-                3,
-                4
+                7,
+                1
             ],
             "end": [
                 4,
-                4
-            ],
-            "piece": "p",
-            "captured": null,
-            "notation": "卒(3,4)-(4,4)",
-            "time": 1.47,
-            "player": "black"
-        },
-        {
-            "start": [
-                3,
-                6
-            ],
-            "end": [
-                3,
-                4
+                1
             ],
             "piece": "C",
             "captured": null,
-            "notation": "炮(3,6)-(3,4)",
-            "time": 1.45,
+            "notation": "炮進三",
+            "time": 1.61,
             "player": "red"
         },
         {
             "start": [
                 0,
-                5
+                8
             ],
             "end": [
                 1,
-                4
+                8
             ],
-            "piece": "a",
+            "piece": "r",
             "captured": null,
-            "notation": "士(0,5)-(1,4)",
-            "time": 4.72,
+            "notation": "車進1",
+            "time": 2.48,
             "player": "black"
         },
         {
@@ -277,167 +97,28 @@
             ],
             "end": [
                 7,
-                6
+                8
             ],
             "piece": "H",
             "captured": null,
-            "notation": "傌(9,7)-(7,6)",
-            "time": 2.26,
-            "player": "red"
-        },
-        {
-            "start": [
-                2,
-                7
-            ],
-            "end": [
-                2,
-                6
-            ],
-            "piece": "c",
-            "captured": null,
-            "notation": "砲(2,7)-(2,6)",
-            "time": 3.91,
-            "player": "black"
-        },
-        {
-            "start": [
-                9,
-                8
-            ],
-            "end": [
-                9,
-                7
-            ],
-            "piece": "R",
-            "captured": null,
-            "notation": "俥(9,8)-(9,7)",
-            "time": 1.67,
-            "player": "red"
-        },
-        {
-            "start": [
-                2,
-                8
-            ],
-            "end": [
-                4,
-                6
-            ],
-            "piece": "e",
-            "captured": null,
-            "notation": "象(2,8)-(4,6)",
-            "time": 4.15,
-            "player": "black"
-        },
-        {
-            "start": [
-                9,
-                7
-            ],
-            "end": [
-                2,
-                7
-            ],
-            "piece": "R",
-            "captured": null,
-            "notation": "俥(9,7)-(2,7)",
-            "time": 2.78,
+            "notation": "傌進一",
+            "time": 1.76,
             "player": "red"
         },
         {
             "start": [
                 0,
-                8
-            ],
-            "end": [
-                0,
-                5
-            ],
-            "piece": "r",
-            "captured": null,
-            "notation": "車(0,8)-(0,5)",
-            "time": 3.16,
-            "player": "black"
-        },
-        {
-            "start": [
-                2,
                 7
             ],
             "end": [
                 2,
                 6
-            ],
-            "piece": "R",
-            "captured": "c",
-            "notation": "俥(2,7)-(2,6)x砲",
-            "time": 1.81,
-            "player": "red"
-        },
-        {
-            "start": [
-                0,
-                5
-            ],
-            "end": [
-                9,
-                5
-            ],
-            "piece": "r",
-            "captured": "A",
-            "notation": "車(0,5)-(9,5)x仕",
-            "time": 2.09,
-            "player": "black"
-        },
-        {
-            "start": [
-                9,
-                4
-            ],
-            "end": [
-                9,
-                5
-            ],
-            "piece": "K",
-            "captured": "r",
-            "notation": "帥(9,4)-(9,5)x車",
-            "time": 1.17,
-            "player": "red"
-        },
-        {
-            "start": [
-                2,
-                3
-            ],
-            "end": [
-                3,
-                1
             ],
             "piece": "h",
             "captured": null,
-            "notation": "馬(2,3)-(3,1)",
-            "time": 5.15,
+            "notation": "馬進7",
+            "time": 1.59,
             "player": "black"
-        },
-        {
-            "start": [
-                2,
-                6
-            ],
-            "end": [
-                0,
-                6
-            ],
-            "piece": "R",
-            "captured": null,
-            "notation": "俥(2,6)-(0,6)",
-            "time": 3.49,
-            "player": "red"
         }
-    ],
-    "initial_timers": {
-        "red": 900,
-        "black": 900
-    }
+    ]
 }
