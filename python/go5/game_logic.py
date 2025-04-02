@@ -6,16 +6,10 @@ import random
 from config import (GameState, BOARD_SIZE, EMPTY, BLACK, WHITE, EDGE,
                     DIRECTIONS, DEFAULT_TIME_LIMIT) # 導入必要的配置和枚舉
 from utils import is_on_board # 導入輔助函數
+# --- 導入外部開局庫 ---
+from opening_book import OPENING_BOOK # <--- 導入開局庫數據
 
-# --- 簡單開局庫 ---
-OPENING_BOOK = {
-    ((7, 7),): (7, 8),
-    ((7, 7), (7, 8)): (6, 8),
-    ((7, 7), (6, 7)): (6, 8),
-    ((7, 7), (7, 8), (6, 8)): (6, 7),
-    ((7, 7), (6, 7), (6, 8)): (7, 8),
-    ((7, 7), (7, 8), (6, 8), (6, 7)): (5, 7),
-}
+# --- 舊的 OPENING_BOOK 定義已被刪除 ---
 
 
 class RenjuGame:
@@ -200,7 +194,14 @@ class RenjuGame:
         self.current_player = WHITE if self.current_player == BLACK else BLACK
         player_name = "黑方" if self.current_player == BLACK else "白方"
         ptype = "(Human)" if self.player_types[self.current_player] == "human" else "(AI)"
-        self.status_message = f"{player_name}{ptype} 回合"
+        # 如果是第一步剛下完，狀態消息不應該包含“請下天元”
+        if self.move_count == 1 and self.current_player == WHITE:
+            self.status_message = f"{player_name}{ptype} 回合"
+        elif self.move_count == 0 and self.current_player == BLACK: # 遊戲重新開始時
+            self.status_message = f"{player_name}{ptype} 回合 (請下天元)"
+        else: # 其他情況
+            self.status_message = f"{player_name}{ptype} 回合"
+
         now = time.time()
         self.last_update_time = now
         self.current_move_start_time = now
@@ -224,6 +225,8 @@ class RenjuGame:
         return False
 
     def check_forbidden_move(self, r, c):
+        # Assumes Black stone is temporarily placed at (r, c)
+        # And move_count > 0
         player = BLACK
         for dr_dc in DIRECTIONS:
             count, _ = self.count_line(r, c, player, dr_dc);
@@ -330,7 +333,7 @@ class RenjuGame:
         """AI 尋找最佳著法，加入開局庫、天元規則和啟發式隨機選擇。"""
         # --- 修正：移除内部的 or self.ai_thinking 檢查 ---
         if self.game_state != GameState.PLAYING:
-            print(f"Debug: find_best_move returning early. State: {self.game_state}") # Debug
+            # print(f"Debug: find_best_move returning early. State: {self.game_state}") # Debug
             return None
         # --- 結束修正 ---
 
@@ -340,7 +343,7 @@ class RenjuGame:
         move_to_return = None # Use a variable to store the result
 
         try:
-            print(f"\n--- AI ({ai_player}) Starting Calculation. move_count={self.move_count} ---") # Debug
+            # print(f"\n--- AI ({ai_player}) Starting Calculation. move_count={self.move_count} ---") # Debug
 
             # --- Strategy -1: AI Black First Move ---
             if self.move_count == 0 and ai_player == BLACK:
@@ -354,31 +357,29 @@ class RenjuGame:
 
             # --- Strategy 0: Opening Book (Only if not handled above) ---
             if move_to_return is None and self.move_count > 0:
-                # --- *** ADDED DEBUGGING *** ---
                 # print(f"Debug: Current move_log: {self.move_log}") # Optional detailed log
                 current_move_sequence = tuple((move['row'], move['col']) for move in self.move_log)
-                print(f"Debug: Generated book key: {current_move_sequence}")
+                # print(f"Debug: Generated book key: {current_move_sequence}")
                 key_exists = current_move_sequence in OPENING_BOOK
-                print(f"Debug: Does key exist in OPENING_BOOK? {key_exists}")
-                # --- *** END DEBUGGING *** ---
+                # print(f"Debug: Does key exist in OPENING_BOOK? {key_exists}")
 
                 if key_exists:
                     book_move = OPENING_BOOK[current_move_sequence]
-                    print(f"Debug: Found key. Suggested move: {book_move}") # Debug
+                    # print(f"Debug: Found key. Suggested move: {book_move}") # Debug
                     is_valid, reason = self._is_valid_move(book_move[0], book_move[1], ai_player)
-                    print(f"Debug: Checking validity of book move {book_move} for player {ai_player}. Valid: {is_valid}, Reason: {reason}") # More detailed debug
+                    # print(f"Debug: Checking validity of book move {book_move} for player {ai_player}. Valid: {is_valid}, Reason: {reason}") # More detailed debug
                     if is_valid:
                         print(f"AI ({ai_player}) using opening book move at {book_move}")
                         move_to_return = book_move # Assign to variable
                     else:
                         print(f"AI ({ai_player}) opening book suggested invalid move {book_move}: {reason}. Falling back.")
-                else:
-                     print("Debug: Key not found in opening book.") # Debug
+                # else:
+                     # print("Debug: Key not found in opening book.") # Debug
 
 
             # --- Strategies 1, 2, 3 (Only if no move found yet) ---
             if move_to_return is None:
-                print("Debug: No book move. Checking win/block/random...") # Debug
+                # print("Debug: No book move. Checking win/block/random...") # Debug
                 empty_spots = []
                 occupied_spots = set()
                 for r in range(BOARD_SIZE):
@@ -393,86 +394,66 @@ class RenjuGame:
                     move_to_return = None
                 else:
                     # 1. Check AI Win
-                    print("Debug: Checking for AI win...") # Debug
+                    # print("Debug: Checking for AI win...") # Debug
                     for r, c in empty_spots:
                         is_valid, _ = self._is_valid_move(r, c, ai_player)
                         if is_valid:
                             self.board[r][c] = ai_player
                             if self.check_win_condition(r, c, ai_player):
-                                self.board[r][c] = EMPTY
-                                print(f"AI ({ai_player}) found winning move at ({r},{c})")
-                                move_to_return = (r, c)
-                                break # Exit win check loop
+                                self.board[r][c] = EMPTY; print(f"AI ({ai_player}) found winning move at ({r},{c})"); move_to_return = (r, c); break
                             self.board[r][c] = EMPTY
                     # if move_to_return: pass # Skip block/random if win found
 
                     # 2. Check Opponent Win (if no AI win)
                     if move_to_return is None:
-                        print("Debug: Checking for opponent block...") # Debug
+                        # print("Debug: Checking for opponent block...") # Debug
                         for r, c in empty_spots:
                             self.board[r][c] = opponent_player
                             opponent_wins_here = self.check_win_condition(r, c, opponent_player)
                             self.board[r][c] = EMPTY
                             if opponent_wins_here:
                                 can_block_here, _ = self._is_valid_move(r, c, ai_player)
-                                if can_block_here:
-                                    print(f"AI ({ai_player}) found opponent win threat at ({r},{c}). Blocking.")
-                                    move_to_return = (r, c)
-                                    break # Exit block check loop
+                                if can_block_here: print(f"AI ({ai_player}) found opponent win threat at ({r},{c}). Blocking."); move_to_return = (r, c); break
                         # if move_to_return: pass # Skip random if block found
 
                     # 3. Adjacent/Random (if no win/block)
                     if move_to_return is None:
-                        print("Debug: Checking for adjacent/random moves...") # Debug
+                        # print("Debug: Checking for adjacent/random moves...") # Debug
                         candidate_moves = []
                         neighbor_offsets = [(dr, dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if not (dr == 0 and dc == 0)]
                         adjacent_empty_spots = set()
-                        if not occupied_spots and ai_player == WHITE and self.move_count == 1:
-                             if self.board[7][7] == BLACK:
-                                for dr, dc in neighbor_offsets:
-                                    nr, nc = 7 + dr, 7 + dc
-                                    if is_on_board(nr, nc) and self.board[nr][nc] == EMPTY:
-                                        adjacent_empty_spots.add((nr, nc))
-                             else: print("Warning: White's first move, but Tengen is not Black?")
+                        if ai_player == WHITE and self.move_count == 1 and self.board[7][7] == BLACK:
+                             for dr, dc in neighbor_offsets:
+                                 nr, nc = 7 + dr, 7 + dc
+                                 if is_on_board(nr, nc) and self.board[nr][nc] == EMPTY: adjacent_empty_spots.add((nr, nc))
                         else:
                              for r_occ, c_occ in occupied_spots:
                                  for dr, dc in neighbor_offsets:
                                      nr, nc = r_occ + dr, c_occ + dc
-                                     if is_on_board(nr, nc) and self.board[nr][nc] == EMPTY:
-                                         adjacent_empty_spots.add((nr, nc))
-
+                                     if is_on_board(nr, nc) and self.board[nr][nc] == EMPTY: adjacent_empty_spots.add((nr, nc))
                         # Filter adjacent
                         for r_adj, c_adj in adjacent_empty_spots:
-                            is_valid, _ = self._is_valid_move(r_adj, c_adj, ai_player)
-                            if is_valid:
-                                candidate_moves.append((r_adj, c_adj))
+                             is_valid, _ = self._is_valid_move(r_adj, c_adj, ai_player)
+                             if is_valid: candidate_moves.append((r_adj, c_adj))
 
-                        if candidate_moves:
-                            move_to_return = random.choice(candidate_moves)
-                            print(f"AI ({ai_player}) chose adjacent move at {move_to_return} from {len(candidate_moves)} adjacent options.")
+                        if candidate_moves: move_to_return = random.choice(candidate_moves); print(f"AI ({ai_player}) chose adjacent move at {move_to_return}...")
                         else:
-                            # Fallback to all valid moves
                             all_valid_moves = []
                             for r_empty, c_empty in empty_spots:
-                                is_valid, _ = self._is_valid_move(r_empty, c_empty, ai_player)
-                                if is_valid:
-                                    all_valid_moves.append((r_empty, c_empty))
-                            if all_valid_moves:
-                                move_to_return = random.choice(all_valid_moves)
-                                print(f"AI ({ai_player}) no adjacent moves. Chose random valid move at {move_to_return} from {len(all_valid_moves)} total options.")
-                            else:
-                                print(f"AI ({ai_player}) has no valid moves left (all empty spots are forbidden?)!")
-                                move_to_return = None
+                                 is_valid, _ = self._is_valid_move(r_empty, c_empty, ai_player)
+                                 if is_valid: all_valid_moves.append((r_empty, c_empty))
+                            if all_valid_moves: move_to_return = random.choice(all_valid_moves); print(f"AI ({ai_player}) chose random valid move at {move_to_return}...")
+                            else: print(f"AI ({ai_player}) has no valid moves left!"); move_to_return = None
 
-            # If after all checks, move_to_return is still None
+
             if move_to_return is None:
-                 print(f"Error: AI ({ai_player}) failed to determine a move.") # Error message
+                 print(f"Error: AI ({ai_player}) failed to determine a move.")
 
         finally:
-            # finally 塊確保 ai_thinking 總是被重置
-            # 在 finally 中不再設置 self.ai_thinking = True
-            self.ai_thinking = False # 確保重置
-            # print(f"--- AI ({ai_player}) Finishing Calculation. Returning: {move_to_return} ---") # Final Debug
+             # finally 塊確保 ai_thinking 總是被重置
+             # 在 finally 中不再設置 self.ai_thinking = True
+             self.ai_thinking = False # 確保重置
+             # print(f"--- AI ({ai_player}) Finishing Calculation. Returning: {move_to_return} ---") # Final Debug
 
         # 返回在 try 塊中決定的著法
         return move_to_return
