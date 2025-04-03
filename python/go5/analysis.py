@@ -80,14 +80,27 @@ class AnalysisHandler:
         return jump_live_threes
 
     def is_live_three(self, board, row, col, player):
+        """Checks if placing a stone at (row, col) results in a live three for the given player."""
+        # 檢查水平方向
+        print(f"找到跳活三檢查水平方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 0, 1):
             return True
+
+        # 檢查垂直方向
+        print(f"找到跳活三檢查垂直方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 1, 0):
             return True
+
+        # 檢查正斜線方向
+        print(f"找到跳活三檢查正斜線方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 1, 1):
             return True
+
+        # 檢查反斜線方向
+        print(f"找到跳活三檢查反斜線方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 1, -1):
             return True
+
         return False
 
     def is_jump_live_three(self, board, row, col, player):
@@ -102,40 +115,31 @@ class AnalysisHandler:
         return False
 
     def check_live_three_direction(self, board, row, col, player, row_dir, col_dir):
-        count = 0
-        empty_count = 0
-        pattern_found = False # 检查标志
+        # """Helper function to check for live three in a specific direction."""
 
-        # 构建包含目标位置在内的 5 个棋子的潜在序列
+        # 從 (row, col) 出發，往 row_dir 和 col_dir 兩個方向尋找，總共找 7 個點
         stones = []
-        for i in range(-2, 3):  # 从目标位置向前和向后检查 2 个位置
+        for i in range(-3, 4):
             r, c = row + i * row_dir, col + i * col_dir
             if is_on_board(r, c):
-                stone = board[r][c]
-                stones.append(stone)
+                stones.append(board[r][c])
             else:
-                stones.append(-1)  # Use -1 to indicate out-of-bounds
+                stones.append(-1)  # 超出邊界
 
-        # 检查活三模式 [EMPTY, player, player, player, EMPTY]
-        pattern = [EMPTY, player, player, player, EMPTY]
+        # 轉為字串方便判斷，-1 代表超出邊界
+        stones_str = ''.join(map(str, stones))
+        print(f"check_live_three_direction" + stones_str)
 
-        # 确保线段的长度至少为 5
-        if len(stones) == 5:
-            # 检查石头是否与模式匹配
-            valid = True
-            for i in range(5):
-                if stones[i] != pattern[i]:
-                    valid = False
-                    break
+        # 活三的 pattern，0 代表空格
+        pattern = f'0{player}{player}{player}0'
+        print(f"check_live_three_direction" + pattern)
 
-            if valid:
-                print(f"({row}, {col}) 在方向 ({row_dir}, {col_dir}) 上找到活三模式")
-                return True
+        if pattern in stones_str:
+            print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到活三模式！")
+            return True
         else:
-             print(f"({row}, {col}) 在方向 ({row_dir}, {col_dir}) 上，长度不足 {len(stones)}")
-
-        # 如果没有发现活三模式，则返回 False
-        return False
+            # print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 沒找到活三模式")
+            return False
 
     def check_jump_live_three_direction(self, board, row, col, player, row_dir, col_dir):
         return False  # 暫時不處理跳活三
@@ -144,9 +148,9 @@ class AnalysisHandler:
         # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
         self.analysis_board[x][y] = player
         self.influence_map[x][y] = 9
-        print(f"更新影響力地圖: ({x}, {y}) elf.influence_map[x][y] = 9")
+        # print(f"更新影響力地圖: ({x}, {y}) elf.influence_map[x][y] = 9")
         # """更新影響力地圖，統計九宮格內棋子數量"""
-        print("update_influence_map called")
+        # print("update_influence_map called")
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
                 count = 0
@@ -181,11 +185,11 @@ class AnalysisHandler:
                     
                     if self.analysis_board[r][c] == EMPTY: #代表無子
                         self.influence_map[r][c] = count
-                        print(f"更新影響力地圖: ({r}, {c}) 的值為 {self.influence_map[r][c]}")
+                        # print(f"更新影響力地圖: ({r}, {c}) 的值為 {self.influence_map[r][c]}")
                 
                 else: #不是代表空格，代表有子
                     self.influence_map[r][c] = 9
-                    print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
+                    # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
                     pass
 
     def get_live_three_positions(self):
