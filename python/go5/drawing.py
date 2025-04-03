@@ -74,7 +74,7 @@ def draw_live_threes(screen, live_three_positions):
             center_y = MARGIN + r * SQUARE_SIZE
             mark_color = (255, 0, 0)  # 红色
             pygame.draw.circle(screen, mark_color, (center_x, center_y), mark_radius, 2)  # 繪製空心圓
-            print(f"繪製活三標記: ({r}, {c}), 顏色: {mark_color}, 圓心: ({center_x}, {center_y})")  # Log
+            # print(f"繪製活三標記: ({r}, {c}), 顏色: {mark_color}, 圓心: ({center_x}, {center_y})")  # Log
     except Exception as e:
         print(f"繪製活三標記時出錯: {e}")
         

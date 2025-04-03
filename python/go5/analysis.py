@@ -82,22 +82,22 @@ class AnalysisHandler:
     def is_live_three(self, board, row, col, player):
         """Checks if placing a stone at (row, col) results in a live three for the given player."""
         # 檢查水平方向
-        print(f"找到跳活三檢查水平方向: ({row}, {col}), 玩家: {player}")
+        # print(f"找到跳活三檢查水平方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 0, 1):
             return True
 
         # 檢查垂直方向
-        print(f"找到跳活三檢查垂直方向: ({row}, {col}), 玩家: {player}")
+        # print(f"找到跳活三檢查垂直方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 1, 0):
             return True
 
         # 檢查正斜線方向
-        print(f"找到跳活三檢查正斜線方向: ({row}, {col}), 玩家: {player}")
+        # print(f"找到跳活三檢查正斜線方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 1, 1):
             return True
 
         # 檢查反斜線方向
-        print(f"找到跳活三檢查反斜線方向: ({row}, {col}), 玩家: {player}")
+        # print(f"找到跳活三檢查反斜線方向: ({row}, {col}), 玩家: {player}")
         if self.check_live_three_direction(board, row, col, player, 1, -1):
             return True
 
@@ -128,11 +128,11 @@ class AnalysisHandler:
 
         # 轉為字串方便判斷，-1 代表超出邊界
         stones_str = ''.join(map(str, stones))
-        print(f"check_live_three_direction" + stones_str)
+        # print(f"check_live_three_direction" + stones_str)
 
         # 活三的 pattern，0 代表空格
         pattern = f'0{player}{player}{player}0'
-        print(f"check_live_three_direction" + pattern)
+        # print(f"check_live_three_direction" + pattern)
 
         if pattern in stones_str:
             print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到活三模式！")
@@ -140,9 +140,33 @@ class AnalysisHandler:
         else:
             # print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 沒找到活三模式")
             return False
-
+    
     def check_jump_live_three_direction(self, board, row, col, player, row_dir, col_dir):
-        return False  # 暫時不處理跳活三
+        # """Helper function to check for jump live three in a specific direction."""
+
+        # 從 (row, col) 出發，往 row_dir 和 col_dir 兩個方向尋找，總共找 7 個點
+        stones = []
+        for i in range(-3, 4):
+            r, c = row + i * row_dir, col + i * col_dir
+            if is_on_board(r, c):
+                stones.append(board[r][c])
+            else:
+                stones.append(-1)  # 超出邊界
+
+        # 轉為字串方便判斷
+        stones_str = ''.join(map(str, stones))
+        print(f"check_jump_live_three_direction" + stones_str)
+
+        # 跳活三的 pattern，0 代表空格
+        pattern = f'0{player}0{player}{player}0'
+        print(f"check_jump_live_three_direction" + pattern)
+
+        if pattern in stones_str:
+            print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳活三模式！")
+            return True
+        else:
+            # print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 沒找到跳活三模式")
+            return False
 
     def update_influence_map(self,player,x,y):
         # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
