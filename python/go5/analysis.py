@@ -140,10 +140,11 @@ class AnalysisHandler:
     def check_jump_live_three_direction(self, board, row, col, player, row_dir, col_dir):
         return False  # 暫時不處理跳活三
 
-    def update_influence_map(self,x,y):
+    def update_influence_map(self,player,x,y):
         # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
-        self.analysis_board[x][y] = 9
-        print(f"更新影響力地圖: ({x}, {y}) elf.analysis_board[x][y] = 9")
+        self.analysis_board[x][y] = player
+        self.influence_map[x][y] = 9
+        print(f"更新影響力地圖: ({x}, {y}) elf.influence_map[x][y] = 9")
         # """更新影響力地圖，統計九宮格內棋子數量"""
         print("update_influence_map called")
         for r in range(BOARD_SIZE):
@@ -151,7 +152,7 @@ class AnalysisHandler:
                 count = 0
                 # 檢查該點是否為空位
 
-                is_empty = self.analysis_board[r][c] != 9
+                is_empty = self.analysis_board[r][c] == EMPTY
                 # if self.analysis_board[r][c] == 9:
                     # self.influence_map[r][c] = 9
                     # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
@@ -173,12 +174,12 @@ class AnalysisHandler:
                             # Log
                             #print(f" 檢查 ({r}, {c}) 的鄰居 ({neighbor_r}, {neighbor_c}) 是否有效: {is_valid}")
                             if is_valid:
-                                if self.analysis_board[neighbor_r][neighbor_c] == 9:
+                                if self.analysis_board[neighbor_r][neighbor_c] != EMPTY:
                                     count += 1
                                     # Log
                                     #print(f" ({neighbor_r}, {neighbor_c}) 有棋子，count 增加到 {count}")
                     
-                    if self.analysis_board[r][c] != 9: #代表無子
+                    if self.analysis_board[r][c] == EMPTY: #代表無子
                         self.influence_map[r][c] = count
                         print(f"更新影響力地圖: ({r}, {c}) 的值為 {self.influence_map[r][c]}")
                 

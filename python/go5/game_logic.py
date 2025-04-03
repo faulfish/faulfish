@@ -90,7 +90,7 @@ class RenjuGame:
         
         # 更新影響力地圖 (新增)
         #self.analysis_handler.influence_map[r][c] = 9 # 直接將落子點的值設為 9 //移除
-        self.analysis_handler.update_influence_map(r,c) # 更新周圍點位
+        self.analysis_handler.update_influence_map(player,r,c) # 更新周圍點位
         print(f"make_move ({r},{c}) self.analysis_handler.update_influence_map()")
 
         # Check win/draw using rules module
