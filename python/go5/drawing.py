@@ -5,11 +5,9 @@ from config import (BOARD_SIZE, SQUARE_SIZE, MARGIN, GRID_WIDTH, GRID_HEIGHT,
                     WIDTH, HEIGHT, BOARD_COLOR, LINE_COLOR, BLACK_STONE, WHITE_STONE,
                     INFO_BG_COLOR, ANALYSIS_BG_COLOR, INFO_TEXT_COLOR, HIGHLIGHT_COLOR,
                     HOVER_BLACK_COLOR, HOVER_WHITE_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR,
-                    MOVE_LIST_HIGHLIGHT_COLOR, EMPTY, BLACK, WHITE, GameState, # 確保 GameState 已導入
-                    INFO_PANEL_RECT, ANALYSIS_PANEL_RECT) # 導入必要的常數和 GameState
-from utils import format_time # 導入用於格式化時間的輔助函式
-
-# --- Drawing Functions ---
+                    MOVE_LIST_HIGHLIGHT_COLOR, EMPTY, BLACK, WHITE, GameState,
+                    INFO_PANEL_RECT, ANALYSIS_PANEL_RECT)
+from utils import format_time
 
 def draw_grid(screen):
     """繪製 Renju 棋盤格線和星位點。"""
@@ -44,13 +42,6 @@ def draw_grid(screen):
 
 def draw_stones(screen, board, last_move, game_state):
     """繪製棋盤上目前的棋子。如果遊戲暫停則跳過繪製。"""
-
-    # --- 加入此條件 ---
-    if game_state == GameState.PAUSED:
-        return # 如果遊戲暫停，則不繪製任何棋子
-    # --- 結束加入的條件 ---
-
-    # 原始的棋子繪製邏輯從這裡開始
     try:
         stone_radius = SQUARE_SIZE // 2 - 3 # 留下與格線的小間隙
         for r in range(BOARD_SIZE):
@@ -74,6 +65,43 @@ def draw_stones(screen, board, last_move, game_state):
     except Exception as e:
         print(f"繪製棋子時出錯: {e}")
 
+def draw_live_threes(screen, live_three_positions):
+    """在棋盘上标记活三的位置。"""
+    try:
+        mark_radius = SQUARE_SIZE // 4
+        for r, c, player in live_three_positions:
+            center_x = MARGIN + c * SQUARE_SIZE
+            center_y = MARGIN + r * SQUARE_SIZE
+            mark_color = (255, 0, 0)  # 红色
+            pygame.draw.circle(screen, mark_color, (center_x, center_y), mark_radius, 2)  # 繪製空心圓
+            print(f"繪製活三標記: ({r}, {c}), 顏色: {mark_color}, 圓心: ({center_x}, {center_y})")  # Log
+    except Exception as e:
+        print(f"繪製活三標記時出錯: {e}")
+        
+def draw_jump_live_threes(screen, jump_live_three_positions):
+    """在棋盘上标记跳活三的位置。"""
+    try:
+        mark_radius = SQUARE_SIZE // 4
+        for r, c, player in jump_live_three_positions:
+            center_x = MARGIN + c * SQUARE_SIZE
+            center_y = MARGIN + r * SQUARE_SIZE
+            mark_color = (0, 0, 255)  # 蓝色
+            pygame.draw.rect(screen, mark_color, (center_x - mark_radius, center_y - mark_radius, mark_radius * 2, mark_radius * 2), 2)  # 繪製空心正方形
+            print(f"繪製跳活三標記: ({r}, {c}), 顏色: {mark_color}, 中心: ({center_x - mark_radius}, {center_y - mark_radius}), 尺寸: {mark_radius * 2}")  # Log
+    except Exception as e:
+        print(f"繪製跳活三標記時出錯: {e}")
+
+def draw_influence_map(screen, influence_map, font):
+    """在棋盘上绘制影响力的值。"""
+    try:
+        for r in range(BOARD_SIZE):
+            for c in range(BOARD_SIZE):
+                value = influence_map[r][c]
+                text_surface = font.render(str(value), True, (128, 128, 128))  # 使用灰色
+                text_rect = text_surface.get_rect(center=(MARGIN + c * SQUARE_SIZE, MARGIN + r * SQUARE_SIZE))
+                screen.blit(text_surface, text_rect)
+    except Exception as e:
+        print(f"繪製影響力地圖時出錯: {e}")
 
 def draw_hover_preview(screen, hover_pos, current_player, board):
     """如果滑鼠懸停在有效的空位置上，則繪製半透明的預覽棋子。"""
@@ -123,7 +151,7 @@ def draw_info_panel(screen, game, font_small, font_medium):
         if not font_small or not font_medium:
             print("警告：資訊面板所需字體未載入。")
             # 可選擇在字體載入失敗時繪製基本文字
-            return button_rects # 如果字體失敗，返回空的 Rect 字典
+            return button_rects # 如果字體載入失敗，返回空的 Rect 字典
 
         timer_line_height = font_small.get_height()
         status_line_height = font_medium.get_height()
@@ -325,7 +353,7 @@ def draw_analysis_panel(screen, game, font_small, font_medium):
                         target_view_pos = max(0, current_view_step)
                         ideal_start = target_view_pos - (max_lines_displayable // 2)
 
-                        # 將起始索引限制在 0 和最後可能的起始索引之間
+                        # 將起始索引限制在 0 和最後可能的起始索引
                         max_start_index = total_moves - max_lines_displayable
                         start_index = max(0, min(ideal_start, max_start_index))
 
@@ -397,16 +425,14 @@ def draw_analysis_panel(screen, game, font_small, font_medium):
             except Exception as e:
                 print(f"渲染著法列表時出錯: {e}")
 
-        else:
-             # --- 非分析模式內容 (可選：顯示遊戲標題或留空) ---
-             try:
-                 # 範例：在面板中央顯示遊戲標題
-                 title_surf = font_medium.render("五子棋", True, INFO_TEXT_COLOR)
-                 title_rect = title_surf.get_rect(center=panel_rect.center)
-                 screen.blit(title_surf, title_rect)
-             except Exception as e:
-                 print(f"渲染錯誤：分析面板佔位符內容 - {e}")
-
+        # --- 非分析模式內容 (可選：顯示遊戲標題或留空) ---
+        try:
+            # 範例：在面板中央顯示遊戲標題
+            title_surf = font_medium.render("五子棋", True, INFO_TEXT_COLOR)
+            title_rect = title_surf.get_rect(center=panel_rect.center)
+            screen.blit(title_surf, title_rect)
+        except Exception as e:
+            print(f"渲染錯誤：分析面板佔位符內容 - {e}")
 
     except Exception as e:
         print(f"繪製分析面板時出錯: {e}")

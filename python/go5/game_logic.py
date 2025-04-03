@@ -87,6 +87,11 @@ class RenjuGame:
         self.board[r][c] = player; self.last_move = (r, c); self.move_count += 1
         log={"player": player, "row": r, "col": c, "time": round(time.time()-self.current_move_start_time,1), "pause": round(self.accumulated_pause_time,1)}
         self.move_log.append(log); self.accumulated_pause_time = 0.0
+        
+        # 更新影響力地圖 (新增)
+        #self.analysis_handler.influence_map[r][c] = 9 # 直接將落子點的值設為 9 //移除
+        self.analysis_handler.update_influence_map(r,c) # 更新周圍點位
+        print(f"make_move ({r},{c}) self.analysis_handler.update_influence_map()")
 
         # Check win/draw using rules module
         if rules.check_win_condition_at(r, c, player, self.board):
@@ -103,7 +108,10 @@ class RenjuGame:
         if self.move_count == BOARD_SIZE*BOARD_SIZE:
              self.game_state=GameState.DRAW; print("Draw game."); self._update_status_message(); return True
 
-        self.switch_player(); return True
+        self.switch_player();
+        # 在移動後更新活三和跳活三的位置（遊戲進行中）
+        self.analysis_handler.update_live_three_positions()
+        return True
 
     def switch_player(self):
         self.current_player = WHITE if self.current_player == BLACK else BLACK
@@ -175,3 +183,11 @@ class RenjuGame:
             return self.analysis_handler.get_last_move_to_draw()
         else:
             return self.last_move
+
+    def get_live_three_positions(self):
+        """Returns the list of live three positions to draw."""
+        return self.analysis_handler.get_live_three_positions()
+
+    def get_jump_live_three_positions(self):
+        """Returns the list of jump live three positions to draw."""
+        return self.analysis_handler.get_jump_live_three_positions()

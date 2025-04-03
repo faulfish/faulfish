@@ -4,10 +4,11 @@ import sys
 import time
 from config import (WIDTH, HEIGHT, GameState, BLACK, WHITE, BOARD_COLOR,
                     BOARD_AREA_WIDTH, BOARD_AREA_HEIGHT)
-from utils import get_board_coords, load_best_font
+from utils import get_board_coords
 from game_logic import RenjuGame
 from drawing import (draw_grid, draw_stones, draw_hover_preview,
-                     draw_info_panel, draw_analysis_panel)
+                     draw_info_panel, draw_analysis_panel, draw_live_threes, 
+                     draw_jump_live_threes, draw_influence_map) # 导入 draw_influence_map
 
 def select_game_mode():
     # ... (不變) ...
@@ -39,8 +40,9 @@ def main():
     except pygame.error as e: print(f"嚴重錯誤：無法設置顯示模式 - {e}"); sys.exit()
     clock = pygame.time.Clock()
     try:
-        font_small = load_best_font(16); font_medium = load_best_font(20)
-        if not font_small or not font_medium: raise RuntimeError("無法載入必要的字體。")
+        font_small = pygame.font.Font(None, 12); font_medium = pygame.font.Font(None, 20)
+        influence_font = pygame.font.Font(None, 40)  # 影响值字体 (原來的兩倍)
+        if not font_small or not font_medium or not influence_font: raise RuntimeError("無法載入必要的字體。")
     except Exception as e: print(f"嚴重錯誤：字體載入失敗 - {e}"); pygame.quit(); sys.exit()
 
     game = RenjuGame(black_player_type=player1_type, white_player_type=player2_type)
@@ -73,7 +75,9 @@ def main():
                              if rect and rect.collidepoint(mouse_pos): clicked_ui_element = True; game.analysis_navigate(name); break
                     if not clicked_ui_element and is_human_turn:
                         click_coords = get_board_coords(mouse_pos[0], mouse_pos[1])
-                        if click_coords: game.make_move(click_coords[0], click_coords[1])
+                        if click_coords:
+                            print(f"人類點擊: {click_coords}") # Log
+                            game.make_move(click_coords[0], click_coords[1])
                 if event.type == pygame.KEYDOWN:
                     human_action_taken_this_frame = True
                     if game.game_state==GameState.ANALYSIS:
@@ -89,7 +93,6 @@ def main():
         # --- Game Logic Update (Timer) ---
         try: game.update_timers()
         except Exception as e: print(f"遊戲邏輯更新 (計時器) 期間出錯: {e}")
-
 
         # --- AI Action Logic ---
         is_ai_turn_now = (game.game_state == GameState.PLAYING and
@@ -128,6 +131,7 @@ def main():
                          delay_needed = max(0, min_total_time - ai_decision_time)
                          if delay_needed > 0.01: pygame.time.wait(int(delay_needed * 1000))
 
+                     print(f"AI 移動: {ai_move}")  # Log
                      game.make_move(ai_move[0], ai_move[1]) # Make move
                  else: # AI cannot move
                      print("AI cannot find a valid move.")
@@ -143,14 +147,22 @@ def main():
                  # Ensure flag is reset even if calculation/move fails
              finally:
                  game.ai_thinking = False # <-- 重置標誌在 finally 中
-        # --- End AI turn try...finally ---
-
+        
+        influence_map = game.analysis_handler.influence_map # 获取 influence_map
+        live_three_positions = game.get_live_three_positions()
+        jump_live_three_positions = game.get_jump_live_three_positions()
 
         # --- 繪圖 ---
         try:
             screen.fill(BOARD_COLOR); draw_grid(screen)
             board_to_draw = game.get_board_to_draw(); last_move_to_draw = game.get_last_move_to_draw()
             draw_stones(screen, board_to_draw, last_move_to_draw, game.game_state)
+
+            if game.game_state != GameState.PAUSED:
+                draw_live_threes(screen, live_three_positions)
+                draw_jump_live_threes(screen, jump_live_three_positions)
+                draw_influence_map(screen, influence_map, influence_font) # 绘制 influence_map
+
             if can_hover: draw_hover_preview(screen, hover_coords, game.current_player, board_to_draw)
             info_panel_buttons = draw_info_panel(screen, game, font_small, font_medium)
             analysis_nav_buttons = draw_analysis_panel(screen, game, font_small, font_medium)
