@@ -124,9 +124,9 @@ class AnalysisHandler:
             if is_on_board(r, c):
                 stones.append(board[r][c])
             else:
-                stones.append(-1)  # 超出邊界
+                stones.append(0)  # 超出邊界 換成 0
 
-        # 轉為字串方便判斷，-1 代表超出邊界
+        # 轉為字串方便判斷
         stones_str = ''.join(map(str, stones))
         # print(f"check_live_three_direction" + stones_str)
 
@@ -151,7 +151,7 @@ class AnalysisHandler:
             if is_on_board(r, c):
                 stones.append(board[r][c])
             else:
-                stones.append(-1)  # 超出邊界
+                stones.append(0)  # 超出邊界
 
         # 轉為字串方便判斷
         stones_str = ''.join(map(str, stones))
