@@ -111,7 +111,7 @@ class AnalysisHandler:
     def check_live_four_direction(self, board, row, col, player, row_dir, col_dir):
         print(f"check_live_four_direction: row={row}, col={col}, player={player}, row_dir={row_dir}, col_dir={col_dir}")
         stones = []
-        for i in range(-3, 4):
+        for i in range(-5, 6):
             r, c = row + i * row_dir, col + i * col_dir
             if is_on_board(r, c):
                 stones.append(board[r][c])
