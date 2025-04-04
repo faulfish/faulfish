@@ -89,7 +89,6 @@ class RenjuGame:
         self.move_log.append(log); self.accumulated_pause_time = 0.0
         
         # 更新影響力地圖 (新增)
-        #self.analysis_handler.influence_map[r][c] = 9 # 直接將落子點的值設為 9 //移除
         self.analysis_handler.update_influence_map(player,r,c) # 更新周圍點位
         print(f"make_move ({r},{c}) self.analysis_handler.update_influence_map()")
 
@@ -111,6 +110,8 @@ class RenjuGame:
         self.switch_player();
         # 在移動後更新活三和跳活三的位置（遊戲進行中）
         self.analysis_handler.update_live_three_positions()
+        print(f"update_live_four_positions...")
+        self.analysis_handler.update_live_four_positions()
         return True
 
     def switch_player(self):
@@ -191,3 +192,7 @@ class RenjuGame:
     def get_jump_live_three_positions(self):
         """Returns the list of jump live three positions to draw."""
         return self.analysis_handler.get_jump_live_three_positions()
+
+    def get_live_four_positions(self):
+        """Returns the list of live four positions to draw."""
+        return self.analysis_handler.get_live_four_positions()

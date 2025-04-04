@@ -86,10 +86,23 @@ def draw_jump_live_threes(screen, jump_live_three_positions):
             center_x = MARGIN + c * SQUARE_SIZE
             center_y = MARGIN + r * SQUARE_SIZE
             mark_color = (0, 0, 255)  # 蓝色
-            pygame.draw.rect(screen, mark_color, (center_x - mark_radius, center_y - mark_radius, mark_radius * 2, mark_radius * 2), 2)  # 繪製空心正方形
+            pygame.draw.circle(screen, mark_color, (center_x - mark_radius, center_y - mark_radius, mark_radius * 2, mark_radius * 2), 2)  # 繪製空心正方形
             print(f"繪製跳活三標記: ({r}, {c}), 顏色: {mark_color}, 中心: ({center_x - mark_radius}, {center_y - mark_radius}), 尺寸: {mark_radius * 2}")  # Log
     except Exception as e:
         print(f"繪製跳活三標記時出錯: {e}")
+
+def draw_live_fours(screen, live_four_positions):
+    """在棋盘上标记活四的位置。"""
+    try:
+        mark_radius = SQUARE_SIZE // 4
+        for r, c, player in live_four_positions:
+            center_x = MARGIN + c * SQUARE_SIZE
+            center_y = MARGIN + r * SQUARE_SIZE
+            mark_color = (255, 0, 0)  # 红色
+            pygame.draw.rect(screen, mark_color, (center_x, center_y), mark_radius, 2)  # 繪製空心圓
+            # print(f"繪製活三標記: ({r}, {c}), 顏色: {mark_color}, 圓心: ({center_x}, {center_y})")  # Log
+    except Exception as e:
+        print(f"繪製活三標記時出錯: {e}")
 
 def draw_influence_map(screen, influence_map, font):
     """在棋盘上绘制影响力的值。"""

@@ -11,6 +11,7 @@ class AnalysisHandler:
         self.last_analysis_move = None
         self.live_three_positions = []
         self.jump_live_three_positions = []
+        self.live_four_positions = []
         self.influence_map = [[0 for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
 
     def navigate(self, direction):
@@ -53,6 +54,12 @@ class AnalysisHandler:
         self.live_three_positions = self.find_live_threes(self.analysis_board)
         self.jump_live_three_positions = self.find_jump_live_threes(self.analysis_board)
 
+    def update_live_four_positions(self):
+        # 更新目前玩家和對手的活四位置
+        self.live_four_positions = self.find_live_four_positions(self.analysis_board)
+        # (你也可以更新對手的活四位置，如果需要的話)
+        # self.opponent_live_four_positions = self.find_live_four_positions(self.board, 3 - self.current_player) # 假設玩家 1 和 2
+
     def find_live_threes(self, board):
         live_threes = []
         for player in [BLACK, WHITE]:
@@ -78,6 +85,46 @@ class AnalysisHandler:
                             print(f"找到跳活三: ({row}, {col}), 玩家: {player}")
                         board[row][col] = EMPTY
         return jump_live_threes
+
+    def find_live_four_positions(self, board):
+        live_fours = []
+        print("find_live_four_positions: 掃描棋盤以尋找活四")
+        for player in [BLACK, WHITE]:
+            for r in range(BOARD_SIZE):
+                for c in range(BOARD_SIZE):
+                    if self.influence_map[r][c] > 0 and board[r][c] == EMPTY:
+                        # 檢查所有方向
+                        if self.check_live_four_direction(board, r, c, player, 1, 0):  # 水平
+                            live_fours.append((r, c, player))
+                            print(f"找到水平活四: ({r}, {c}), 玩家: {player}")
+                        if self.check_live_four_direction(board, r, c, player, 0, 1):  # 垂直
+                            live_fours.append((r, c, player))
+                            print(f"找到垂直活四: ({r}, {c}), 玩家: {player}")
+                        if self.check_live_four_direction(board, r, c, player, 1, 1):  # 正斜線
+                            live_fours.append((r, c, player))
+                            print(f"找到正斜線活四: ({r}, {c}), 玩家: {player}")
+                        if self.check_live_four_direction(board, r, c, player, 1, -1):  # 反斜線
+                            live_fours.append((r, c, player))
+                            print(f"找到反斜線活四: ({r}, {c}), 玩家: {player}")
+        return live_fours
+    
+    def check_live_four_direction(self, board, row, col, player, row_dir, col_dir):
+        print(f"check_live_four_direction: row={row}, col={col}, player={player}, row_dir={row_dir}, col_dir={col_dir}")
+        stones = []
+        for i in range(-3, 4):
+            r, c = row + i * row_dir, col + i * col_dir
+            if is_on_board(r, c):
+                stones.append(board[r][c])
+            else:
+                stones.append(0)  # 超出邊界
+
+        stones_str = ''.join(map(str, stones))
+        pattern = f'0{player}{player}{player}{player}0'
+        print(f"stones4_str={stones_str}, pattern={pattern}")
+        if pattern in stones_str:
+            print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到活四模式！")
+            return True
+        return False
 
     def is_live_three(self, board, row, col, player):
         """Checks if placing a stone at (row, col) results in a live three for the given player."""
@@ -128,11 +175,9 @@ class AnalysisHandler:
 
         # 轉為字串方便判斷
         stones_str = ''.join(map(str, stones))
-        # print(f"check_live_three_direction" + stones_str)
-
         # 活三的 pattern，0 代表空格
         pattern = f'0{player}{player}{player}0'
-        # print(f"check_live_three_direction" + pattern)
+        print(f"stones3_str={stones_str}, pattern={pattern}")
 
         if pattern in stones_str:
             print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到活三模式！")
@@ -169,7 +214,6 @@ class AnalysisHandler:
             return False
 
     def update_influence_map(self,player,x,y):
-        # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
         self.analysis_board[x][y] = player
         self.influence_map[x][y] = 9
         # print(f"更新影響力地圖: ({x}, {y}) elf.influence_map[x][y] = 9")
@@ -221,3 +265,12 @@ class AnalysisHandler:
 
     def get_jump_live_three_positions(self):
         return self.jump_live_three_positions
+
+    def get_live_four_positions(self):
+        return self.live_four_positions
+
+
+
+
+
+
