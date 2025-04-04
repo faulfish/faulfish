@@ -155,11 +155,11 @@ class AnalysisHandler:
 
         # 轉為字串方便判斷
         stones_str = ''.join(map(str, stones))
-        print(f"check_jump_live_three_direction" + stones_str)
+        # print(f"check_jump_live_three_direction" + stones_str)
 
         # 跳活三的 pattern，0 代表空格
         pattern = f'0{player}0{player}{player}0'
-        print(f"check_jump_live_three_direction" + pattern)
+        # print(f"check_jump_live_three_direction" + pattern)
 
         if pattern in stones_str:
             print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳活三模式！")

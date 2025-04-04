@@ -1,6 +1,7 @@
 # main.py
 import pygame
 import sys
+import os
 import time
 from config import (WIDTH, HEIGHT, GameState, BLACK, WHITE, BOARD_COLOR,
                     BOARD_AREA_WIDTH, BOARD_AREA_HEIGHT)
@@ -9,6 +10,41 @@ from game_logic import RenjuGame
 from drawing import (draw_grid, draw_stones, draw_hover_preview,
                      draw_info_panel, draw_analysis_panel, draw_live_threes, 
                      draw_jump_live_threes, draw_influence_map) # 导入 draw_influence_map
+
+# Use an absolute path here
+# font_path = "/Users/alan/Desktop/faulfish/python/go5/Noto Sans SC/NotoSansSC-VariableFont_wght.ttf"  #  <--  YOUR ABSOLUTE PATH HERE
+FONT_FILE_PATH = os.path.join("Noto Sans SC", "NotoSansSC-VariableFont_wght.ttf")
+# Declare the font here to allow access in multiple functions
+font_small = None
+font_medium = None
+
+
+def initialize_fonts():
+    """Initializes fonts, handling potential errors."""
+    global font_small, font_medium, influence_font  # Access the global variables
+
+    try:
+        font_small = pygame.font.Font(FONT_FILE_PATH, 12)  # Smaller font size for font_small
+        font_medium = pygame.font.Font(FONT_FILE_PATH, 20)
+        influence_font = pygame.font.Font(FONT_FILE_PATH, 40)  # 影响值字体 (原來的兩倍)
+
+        # Check if all fonts loaded successfully
+        if not font_small or not font_medium or not influence_font:
+            raise RuntimeError("無法載入必要的字體。")
+        # No need to return anything, globals are modified directly
+
+    except FileNotFoundError:
+        print(f"Error: Font file not found at {FONT_FILE_PATH}")  # Use FONT_FILE_PATH here
+        font_small = pygame.font.SysFont("Arial", 12)  # Example fallback with Arial
+        font_medium = pygame.font.SysFont("Arial", 20)  # Example fallback with Arial
+        influence_font = pygame.font.SysFont("Arial", 40)  # Example fallback with Arial
+        # No need to return anything, globals are modified directly
+
+    except Exception as e:
+        print(f"嚴重錯誤：字體載入失敗 - {e}")
+        pygame.quit()
+        sys.exit()
+
 
 def select_game_mode():
     # ... (不變) ...
@@ -40,8 +76,9 @@ def main():
     except pygame.error as e: print(f"嚴重錯誤：無法設置顯示模式 - {e}"); sys.exit()
     clock = pygame.time.Clock()
     try:
-        font_small = pygame.font.Font(None, 12); font_medium = pygame.font.Font(None, 20)
-        influence_font = pygame.font.Font(None, 40)  # 影响值字体 (原來的兩倍)
+        initialize_fonts()
+        # font_small = pygame.font.Font(None, 12); font_medium = pygame.font.Font(None, 20)
+        # influence_font = pygame.font.Font(None, 40)  # 影响值字体 (原來的兩倍)
         if not font_small or not font_medium or not influence_font: raise RuntimeError("無法載入必要的字體。")
     except Exception as e: print(f"嚴重錯誤：字體載入失敗 - {e}"); pygame.quit(); sys.exit()
 
