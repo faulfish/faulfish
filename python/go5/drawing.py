@@ -66,19 +66,19 @@ def draw_stones(screen, board, last_move, game_state):
 
 def draw_live_threes(screen, live_three_positions):
     """在棋盘上标记活三的位置。"""
-    _draw_pattern_marks(screen, live_three_positions, (255, 0, 0), "circle")  # 紅色，空心圓
+    _draw_pattern_marks(screen, live_three_positions, (0, 0, 255), "circle")  # 紅色，空心圓
 
 def draw_jump_live_threes(screen, jump_live_three_positions):
     """在棋盘上标记跳活三的位置。"""
-    _draw_pattern_marks(screen, jump_live_three_positions, (0, 0, 255), "circle")  # 藍色，空心圓
+    _draw_pattern_marks(screen, jump_live_three_positions, (255, 0, 0), "circle")  # 藍色，空心圓
 
 def draw_live_fours(screen, live_four_positions):
     """在棋盘上标记活四的位置。"""
-    _draw_pattern_marks(screen, live_four_positions, (255, 0, 0), "square")  # 紅色，空心正方形
+    _draw_pattern_marks(screen, live_four_positions, (0, 0, 255), "square")  # 紅色，空心正方形
 
 def draw_jump_fours(screen, jump_four_positions):
     """在棋盘上标记跳四的位置。"""
-    _draw_pattern_marks(screen, jump_four_positions, (0, 0, 255), "square")  # 藍色，空心正方形
+    _draw_pattern_marks(screen, jump_four_positions, (255, 255, 0), "square")  # 藍色，空心正方形
 
 def draw_live_fives(screen, live_five_positions):
     """在棋盘上标记跳四的位置。"""
