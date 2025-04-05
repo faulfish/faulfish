@@ -53,7 +53,7 @@ class AnalysisHandler:
                 if is_on_board(r, c):
                     if self.analysis_board[r][c] == EMPTY:  # 這裡不要改動
                         self.analysis_board[r][c] = p
-                        self.update_influence_map(p,r,c) #傳入下棋者是誰
+                        self.update_influence_map(p, r, c)  # 傳入下棋者是誰
                         if i == target_idx:
                             self.last_analysis_move = (r, c)
                     else:
@@ -86,68 +86,51 @@ class AnalysisHandler:
     # 棋型查找 (Find)
     def find_live_threes(self, board):
         """尋找活三"""
-        live_threes = []
-        for player in [BLACK, WHITE]:
-            for row in range(BOARD_SIZE):
-                for col in range(BOARD_SIZE):
-                    if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
-                        board[row][col] = player
-                        if self.is_live_three(board, row, col, player):
-                            live_threes.append((row, col, player))
-                            logger.info(f"找到活三: ({row}, {col}), 玩家: {player}")
-                        board[row][col] = EMPTY
-        return live_threes
+        return self._find_pattern_positions(board, self.is_live_three, "live_three")
 
     def find_jump_live_threes(self, board):
         """尋找跳活三"""
-        jump_live_threes = []
+        return self._find_pattern_positions(board, self.is_jump_live_three, "jump_live_three")
+
+    def find_four_positions(self, board):
+         """尋找連四"""
+         return self._find_pattern_positions_direction(board, self.check_four_direction, "four")
+
+    def find_jump_four_positions(self, board):
+        """尋找跳連四"""
+        return self._find_pattern_positions_direction(board, self.check_jump_four_direction, "jump_four")
+
+    def _find_pattern_positions(self, board, check_func, pattern_type):
+        """尋找指定棋型的通用方法"""
+        positions = []
         for player in [BLACK, WHITE]:
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
                         board[row][col] = player
-                        if self.is_jump_live_three(board, row, col, player):
-                            jump_live_threes.append((row, col, player))
-                            logger.info(f"找到跳活三: ({row}, {col}), 玩家: {player}")
+                        if check_func(board, row, col, player):
+                            logger.info(f"找到 {pattern_type}: ({row}, {col}), 玩家: {player}")
+                            positions.append((row, col, player))  # 儲存棋型類型
                         board[row][col] = EMPTY
-        return jump_live_threes
+        return positions
 
-    def find_four_positions(self, board):
-        """尋找連四"""
-        fours = []
-        logger.info("find_four_positions: 掃描棋盤以尋找連四")
+    def _find_pattern_positions_direction(self, board, check_func, pattern_type):
+        """尋找指定棋型，需要指定方向的通用方法"""
+        positions = []
         for player in [BLACK, WHITE]:
-            for r in range(BOARD_SIZE):
-                for c in range(BOARD_SIZE):
-                    if self.influence_map[r][c] > 0 and board[r][c] == EMPTY:
+            for row in range(BOARD_SIZE):
+                for col in range(BOARD_SIZE):
+                    if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
                         # 檢查所有方向
-                        self.check_four_direction(board, r, c, player, 1, 0, fours)  # 水平
-                        self.check_four_direction(board, r, c, player, 0, 1, fours)  # 垂直
-                        self.check_four_direction(board, r, c, player, 1, 1, fours)  # 正斜線
-                        self.check_four_direction(board, r, c, player, 1, -1, fours)  # 反斜線
-        return fours
-
-    def find_jump_four_positions(self, board):
-        """尋找跳連四"""
-        jump_fours = []
-        logger.info("find_jump_four_positions: 掃描棋盤以尋找跳連四")
-        print("find_jump_four_positions: 掃描棋盤以尋找跳連四")
-        for player in [BLACK, WHITE]:
-            for r in range(BOARD_SIZE):
-                for c in range(BOARD_SIZE):
-                    if self.influence_map[r][c] > 0 and board[r][c] == EMPTY:
-                        # 檢查所有方向
-                        self.check_jump_four_direction(board, r, c, player, 1, 0, jump_fours)  # 水平
-                        self.check_jump_four_direction(board, r, c, player, 0, 1, jump_fours)  # 垂直
-                        self.check_jump_four_direction(board, r, c, player, 1, 1, jump_fours)  # 正斜線
-                        self.check_jump_four_direction(board, r, c, player, 1, -1, jump_fours)  # 反斜線
-        return jump_fours
+                        check_func(board, row, col, player, 1, 0, positions)  # 水平
+                        check_func(board, row, col, player, 0, 1, positions)  # 垂直
+                        check_func(board, row, col, player, 1, 1, positions)  # 正斜線
+                        check_func(board, row, col, player, 1, -1, positions)  # 反斜線
+        return positions
 
     # 棋型檢查 (Check)
     def check_four_direction(self, board, row, col, player, row_dir, col_dir, result_list):
-        """
-        檢查指定方向上是否存在連四 (XXXX0 或 0XXXX)
-        """
+        """檢查指定方向上是否存在連四 (XXXX0 或 0XXXX)"""
         stones_str = self._get_stones_string(board, row, col, row_dir, col_dir)
 
         # 檢查 XXXX0 和 0XXXX 模式
@@ -155,29 +138,19 @@ class AnalysisHandler:
         pattern2 = f'0{player}{player}{player}{player}'
 
         if pattern1 in stones_str:
-            index = stones_str.find(pattern1)
-            r, c = row + (index - 5 + 4) * row_dir, col + (index - 5 + 4) * col_dir
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連四模式 XXXX0！")
-            print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連四模式 XXXX0！")
-            # result_list.append(((row, col), (r, c), player, "four"))
             result_list.append((row, col, player))
             return True
 
         if pattern2 in stones_str:
-            index = stones_str.find(pattern2)
-            r, c = row + (index - 5) * row_dir, col + (index - 5) * col_dir
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連四模式 0XXXX！")
-            print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連四模式 0XXXX！")
-            #result_list.append(((row, col), (r, c), player, "four"))
             result_list.append((row, col, player))
             return True
 
         return False
 
     def check_jump_four_direction(self, board, row, col, player, row_dir, col_dir, result_list):
-        """
-        檢查指定方向上是否存在跳連四 (X0XXX、XXX0X 和 XX0XX)
-        """
+        """檢查指定方向上是否存在跳連四 (X0XXX、XXX0X 和 XX0XX)"""
         stones_str = self._get_stones_string(board, row, col, row_dir, col_dir)
 
         # 檢查 X0XXX、XXX0X 和 XX0XX 模式
@@ -186,40 +159,22 @@ class AnalysisHandler:
         pattern3 = f'{player}{player}0{player}{player}'
 
         if pattern1 in stones_str:
-            index = stones_str.find(pattern1)
-            r, c = row + (index - 5 + 1) * row_dir, col + (index - 5 + 1) * col_dir # 0的位置
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳連四模式 X0XXX！")
-            #result_list.append(((row, col), (r, c), player, "jump_four"))
             result_list.append((row, col, player))
 
         if pattern2 in stones_str:
-            index = stones_str.find(pattern2)
-            r, c = row + (index - 5 + 3) * row_dir, col + (index - 5 + 3) * col_dir # 0的位置
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳連四模式 XXX0X！")
-            #result_list.append(((row, col), (r, c), player, "jump_four"))
             result_list.append((row, col, player))
 
         if pattern3 in stones_str:
-            index = stones_str.find(pattern3)
-            r, c = row + (index - 5 + 2) * row_dir, col + (index - 5 + 2) * col_dir # 0的位置
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳連四模式 XX0XX！")
-            #result_list.append(((row, col), (r, c), player, "jump_four"))
             result_list.append((row, col, player))
+
+        return # 確保有返回值
 
     def check_live_three_direction(self, board, row, col, player, row_dir, col_dir):
         """檢查指定方向上是否存在活三"""
-        # 從 (row, col) 出發，往 row_dir 和 col_dir 兩個方向尋找，總共找 7 個點
-        stones = []
-        for i in range(-3, 4):
-            r, c = row + i * row_dir, col + i * col_dir
-            if is_on_board(r, c):
-                stones.append(board[r][c])
-            else:
-                stones.append(0)  # 超出邊界 換成 0
-
-        # 轉為字串方便判斷
-        stones_str = ''.join(map(str, stones))
-        # 活三的 pattern，0 代表空格
+        stones_str = self._get_stones_string(board, row, col, row_dir, col_dir, length=7)
         pattern = f'0{player}{player}{player}0'
         logger.debug(f"stones3_str={stones_str}, pattern={pattern}")
 
@@ -227,41 +182,27 @@ class AnalysisHandler:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到活三模式！")
             return True
         else:
-            # print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 沒找到活三模式")
             return False
 
     def check_jump_live_three_direction(self, board, row, col, player, row_dir, col_dir):
-        # """Helper function to check for jump live three in a specific direction."""
-
-        # 從 (row, col) 出發，往 row_dir 和 col_dir 兩個方向尋找，總共找 7 個點
-        stones = []
-        for i in range(-3, 4):
-            r, c = row + i * row_dir, col + i * col_dir
-            if is_on_board(r, c):
-                stones.append(board[r][c])
-            else:
-                stones.append(0)  # 超出邊界
-
-        # 轉為字串方便判斷
-        stones_str = ''.join(map(str, stones))
-        # print(f"check_jump_live_three_direction" + stones_str)
-
-        # 跳活三的 pattern，0 代表空格
+        """檢查指定方向上是否存在跳活三"""
+        stones_str = self._get_stones_string(board, row, col, row_dir, col_dir, length=7)
         pattern = f'0{player}0{player}{player}0'
-        # print(f"check_jump_live_three_direction" + pattern)
 
         if pattern in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳活三模式！")
             return True
         else:
-            # print(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 沒找到跳活三模式")
             return False
 
     # 輔助方法
-    def _get_stones_string(self, board, row, col, row_dir, col_dir):
+    def _get_stones_string(self, board, row, col, row_dir, col_dir, length=11):
         """獲取指定方向上的棋子字串"""
         stones = []
-        for i in range(-5, 6):  # 擴大範圍，檢查更多位置
+        start = -(length // 2)
+        end = length // 2 + 1
+
+        for i in range(start, end):  # 擴大範圍，檢查更多位置
             r, c = row + i * row_dir, col + i * col_dir
             if is_on_board(r, c):
                 stones.append(board[r][c])
@@ -286,12 +227,12 @@ class AnalysisHandler:
 
         for i in range(target_idx + 1):
             if i < len(self.game.move_log):
-                data = self.game.move_log[i] #使用 self.game.move_log
+                data = self.game.move_log[i]  # 使用 self.game.move_log
                 r, c, p = data.get('row', -1), data.get('col', -1), data.get('player', 0)
                 if is_on_board(r, c):
                     if self.analysis_board[r][c] == EMPTY:  # 這裡不要改動
                         self.analysis_board[r][c] = p
-                        self.update_influence_map(p,r,c) #傳入下棋者是誰
+                        self.update_influence_map(p, r, c)  # 傳入下棋者是誰
                         if i == target_idx:
                             self.last_analysis_move = (r, c)
                     else:
@@ -322,86 +263,66 @@ class AnalysisHandler:
         self.jump_four_positions = self.find_jump_four_positions(self.analysis_board)
 
     def is_live_three(self, board, row, col, player):
-        """Checks if placing a stone at (row, col) results in a live three for the given player."""
-        # 檢查水平方向
-        # print(f"找到跳活三檢查水平方向: ({row}, {col}), 玩家: {player}")
-        if self.check_live_three_direction(board, row, col, player, 0, 1):
+        """檢查在指定位置落子是否會形成活三"""
+        stones_str = self._get_stones_string(board, row, col, 0, 1, length=7) #水平
+        if f'0{player}{player}{player}0' in stones_str:
             return True
 
-        # 檢查垂直方向
-        # print(f"找到跳活三檢查垂直方向: ({row}, {col}), 玩家: {player}")
-        if self.check_live_three_direction(board, row, col, player, 1, 0):
+        stones_str = self._get_stones_string(board, row, col, 1, 0, length=7) #垂直
+        if f'0{player}{player}{player}0' in stones_str:
             return True
 
-        # 檢查正斜線方向
-        # print(f"找到跳活三檢查正斜線方向: ({row}, {col}), 玩家: {player}")
-        if self.check_live_three_direction(board, row, col, player, 1, 1):
+        stones_str = self._get_stones_string(board, row, col, 1, 1, length=7) #正斜線
+        if f'0{player}{player}{player}0' in stones_str:
             return True
 
-        # 檢查反斜線方向
-        # print(f"找到跳活三檢查反斜線方向: ({row}, {col}), 玩家: {player}")
-        if self.check_live_three_direction(board, row, col, player, 1, -1):
+        stones_str = self._get_stones_string(board, row, col, 1, -1, length=7) #反斜線
+        if f'0{player}{player}{player}0' in stones_str:
             return True
-
         return False
 
     def is_jump_live_three(self, board, row, col, player):
-        if self.check_jump_live_three_direction(board, row, col, player, 0, 1):
+        """檢查在指定位置落子是否會形成跳活三"""
+        stones_str = self._get_stones_string(board, row, col, 0, 1, length=7) #水平
+        if f'0{player}0{player}{player}0' in stones_str:
             return True
-        if self.check_jump_live_three_direction(board, row, col, player, 1, 0):
+
+        stones_str = self._get_stones_string(board, row, col, 1, 0, length=7) #垂直
+        if f'0{player}0{player}{player}0' in stones_str:
             return True
-        if self.check_jump_live_three_direction(board, row, col, player, 1, 1):
+
+        stones_str = self._get_stones_string(board, row, col, 1, 1, length=7) #正斜線
+        if f'0{player}0{player}{player}0' in stones_str:
             return True
-        if self.check_jump_live_three_direction(board, row, col, player, 1, -1):
+
+        stones_str = self._get_stones_string(board, row, col, 1, -1, length=7) #反斜線
+        if f'0{player}0{player}{player}0' in stones_str:
             return True
         return False
 
-    def update_influence_map(self,player,x,y):
+    def update_influence_map(self, player, x, y):
+        """更新影響力地圖"""
         self.analysis_board[x][y] = player
         self.influence_map[x][y] = 9
-        # print(f"更新影響力地圖: ({x}, {y}) elf.influence_map[x][y] = 9")
-        # """更新影響力地圖，統計九宮格內棋子數量"""
-        # print("update_influence_map called")
+
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
                 count = 0
-                # 檢查該點是否為空位
-
                 is_empty = self.analysis_board[r][c] == EMPTY
-                # if self.analysis_board[r][c] == 9:
-                    # self.influence_map[r][c] = 9
-                    # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
-                    # continue
-                # if self.analysis_board[r][c] == EMPTY: #保證只更新沒有棋子的點位
-                # print(f"更新影響力地圖: 檢查 ({r}, {c}) 是否为空: {is_empty}")
-                # is_empty = self.analysis_board[r][c] == EMPTY
-                # if is_empty:  # 只统计空位
-                if is_empty:  # 只统计空位
+
+                if is_empty:  # 只統計空位
                     for i in range(-1, 2):
                         for j in range(-1, 2):
-                            neighbor_r, neighbor_c = r + i, c + j
-                            # 排除自身 (新增)
-                            if i == 0 and j == 0:
+                            if i == 0 and j == 0:  # 排除自身
                                 continue
 
                             neighbor_r, neighbor_c = r + i, c + j
-                            is_valid = is_on_board(neighbor_r, neighbor_c)
-                            # Log
-                            #print(f" 檢查 ({r}, {c}) 的鄰居 ({neighbor_r}, {neighbor_c}) 是否有效: {is_valid}")
-                            if is_valid:
-                                if self.analysis_board[neighbor_r][neighbor_c] != EMPTY:
-                                    count += 1
-                                    # Log
-                                    #print(f" ({neighbor_r}, {neighbor_c}) 有棋子，count 增加到 {count}")
+                            if is_on_board(neighbor_r, neighbor_c) and self.analysis_board[neighbor_r][neighbor_c] != EMPTY:
+                                count += 1
 
-                    if self.analysis_board[r][c] == EMPTY: #代表無子
-                        self.influence_map[r][c] = count
-                        # print(f"更新影響力地圖: ({r}, {c}) 的值為 {self.influence_map[r][c]}")
-
-                else: #不是代表空格，代表有子
+                    self.influence_map[r][c] = count
+                else:  # 不是代表空格，代表有子
                     self.influence_map[r][c] = 9
-                    # print(f"更新影響力地圖: ({r}, {c}) 的值設為 9 (有棋子)")
-                    pass
 
     # getter 方法
     def get_live_three_positions(self):
