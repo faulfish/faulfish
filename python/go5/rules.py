@@ -32,21 +32,50 @@ def check_win_condition_at(r, c, player, board):
 
 def check_specific_line_at(r, c, player, board, dr_dc, target):
     """檢查特定方向是否形成指定長度線段及是否活三。"""
-    dr,dc=dr_dc; line=[]; idx=-1; T=target
-    for i in range(T+1,0,-1): cr,cc=r-i*dr,c-i*dc; line.append(board[cr][cc] if is_on_board(cr,cc) else EDGE)
-    line.append(player); idx=len(line)-1
-    for i in range(1,T+2): cr,cc=r+i*dr,c+i*dc; line.append(board[cr][cc] if is_on_board(cr,cc) else EDGE)
-    found=False; open3=False
-    for i in range(len(line)-T+1):
-        sub=line[i:i+T]
-        if all(s==player for s in sub) and i<=idx<i+T:
-             left=line[i-1] if i>0 else EDGE; right=line[i+T] if (i+T)<len(line) else EDGE; longer=(left==player or right==player)
-             if not longer:
-                found=True
-                if T==3 and left==EMPTY and right==EMPTY:
-                    open3=True; break
-    if T==3: return found, open3
-    else: return found, False
+    dr, dc = dr_dc
+    line = []
+    idx = -1
+    T = target
+
+    # 獲取指定方向上的棋子序列
+    for i in range(T + 1, 0, -1):
+        cr, cc = r - i * dr, c - i * dc
+        if is_on_board(cr, cc):
+            line.append(board[cr][cc])
+        else:
+            line.append(EDGE)
+
+    line.append(player)
+    idx = len(line) - 1
+
+    for i in range(1, T + 2):
+        cr, cc = r + i * dr, c + i * dc
+        if is_on_board(cr, cc):
+            line.append(board[cr][cc])
+        else:
+            line.append(EDGE)
+
+    found = False
+    open3 = False
+
+    # 檢查是否形成指定長度的線段
+    for i in range(len(line) - T + 1):
+        sub = line[i:i + T]
+        if all(s == player for s in sub) and i <= idx < i + T:
+            left = line[i - 1] if i > 0 else EDGE
+            right = line[i + T] if (i + T) < len(line) else EDGE
+            longer = (left == player or right == player)
+
+            if not longer:
+                found = True
+                if T == 3 and left == EMPTY and right == EMPTY:
+                    open3 = True
+                    break
+
+    if T == 3:
+        return found, open3
+    else:
+        return found, False
 
 def check_forbidden_move_at(r, c, board):
     """檢查黑棋在 (r, c) 落子是否為禁手 (假設已臨時落子)。"""

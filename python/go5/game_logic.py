@@ -68,7 +68,7 @@ class RenjuGame:
             if self.player_types[loser]=="ai":
                 print(f"AI {loser} lost by timeout. Learning...")
                 # --- 調用 ai_player 模塊的學習函數 ---
-                ai_player.learn_from_ai_loss(self.move_log, self.player_types)
+                ai_player.ai_player.learn_from_ai_loss(self.move_log, self.player_types)
                 # --- 結束調用 ---
 
     def make_move(self, r, c):
@@ -101,7 +101,7 @@ class RenjuGame:
             if self.player_types[loser]=="ai":
                 print(f"AI {loser} lost. Learning...")
                 # --- 調用 ai_player 模塊的學習函數 ---
-                ai_player.learn_from_ai_loss(self.move_log, self.player_types)
+                ai_player.ai_player.learn_from_ai_loss(self.move_log, self.player_types)
                 # --- 結束調用 ---
             return True
         if self.move_count == BOARD_SIZE*BOARD_SIZE:
@@ -125,8 +125,8 @@ class RenjuGame:
         if self.game_state != GameState.PLAYING or self.player_types[self.current_player] != "ai":
             return None, False
         # 調用 ai_player 模塊的函數
-        move, used_book = ai_player.find_best_ai_move(
-            self.board, self.move_log, self.move_count, self.current_player
+        move, used_book = ai_player.ai_player.find_best_ai_move(  # 使用 ai_player 實例
+            self.board, self.move_log, self.move_count, self.current_player, self.analysis_handler #傳入 self.analysis_handler
         )
         return move, used_book
 
