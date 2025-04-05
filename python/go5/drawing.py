@@ -82,21 +82,23 @@ def draw_jump_fours(screen, jump_four_positions):
 
 def _draw_pattern_marks(screen, positions, color, shape="circle"):
     """在棋盤上繪製指定樣式標記的輔助函式"""
-    try:
-        mark_radius = SQUARE_SIZE // 4
-        for r, c, player in positions:  # 忽略 pattern_type，因為這裡不需要
+    mark_radius = SQUARE_SIZE // 4 # 標記半徑
+    for r, c, player, pattern_type in positions:
+        try:
             center_x = MARGIN + c * SQUARE_SIZE
             center_y = MARGIN + r * SQUARE_SIZE
 
             if shape == "circle":
                 pygame.draw.circle(screen, color, (center_x, center_y), mark_radius, 2)  # 繪製空心圓
             elif shape == "square":
-                 pygame.draw.rect(screen, color, (center_x - mark_radius, center_y - mark_radius,
+                pygame.draw.rect(screen, color, (center_x - mark_radius, center_y - mark_radius,
                                              mark_radius * 2, mark_radius * 2), 2)  # 繪製空心正方形
+            else:
+                print(f"警告: 未知的標記形狀: {shape}") # 處理未知形狀
             #print(f"繪製標記: ({r}, {c}), 顏色: {color}, 圓心: ({center_x}, {center_y}), 形狀: {shape}")  # Log
 
-    except Exception as e:
-        print(f"繪製 {shape} 標記時出錯: {e}")
+        except Exception as e:
+            print(f"繪製 {shape} 標記時出錯: {e}")
 
 def draw_influence_map(screen, influence_map, font):
     """在棋盘上绘制影响力的值。"""

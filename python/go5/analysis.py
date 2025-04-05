@@ -61,7 +61,7 @@ class AnalysisHandler:
                         self.last_analysis_move = None
                         break
                 else:
-                    logger.warning(f"Warn: Analysis Recon Invalid coord step {i+1} ({r},{c})")
+                    logger.warning(f"Warn: Analysis Recon Invalid coord step {i+1} at ({r},{c})")
                     self.last_analysis_move = None
                     break
 
@@ -108,9 +108,9 @@ class AnalysisHandler:
                 for col in range(BOARD_SIZE):
                     if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
                         board[row][col] = player
-                        if check_func(board, row, col, player):
+                        if check_func(board, row, col, player): #傳入 pattern_type
                             logger.info(f"找到 {pattern_type}: ({row}, {col}), 玩家: {player}")
-                            positions.append((row, col, player))  # 儲存棋型類型
+                            positions.append((row, col, player, pattern_type))  # 儲存棋型類型
                         board[row][col] = EMPTY
         return positions
 
@@ -122,14 +122,14 @@ class AnalysisHandler:
                 for col in range(BOARD_SIZE):
                     if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
                         # 檢查所有方向
-                        check_func(board, row, col, player, 1, 0, positions)  # 水平
-                        check_func(board, row, col, player, 0, 1, positions)  # 垂直
-                        check_func(board, row, col, player, 1, 1, positions)  # 正斜線
-                        check_func(board, row, col, player, 1, -1, positions)  # 反斜線
+                        check_func(board, row, col, player, 1, 0, positions, pattern_type)  # 水平
+                        check_func(board, row, col, player, 0, 1, positions, pattern_type)  # 垂直
+                        check_func(board, row, col, player, 1, 1, positions, pattern_type)  # 正斜線
+                        check_func(board, row, col, player, 1, -1, positions, pattern_type)  # 反斜線
         return positions
 
     # 棋型檢查 (Check)
-    def check_four_direction(self, board, row, col, player, row_dir, col_dir, result_list):
+    def check_four_direction(self, board, row, col, player, row_dir, col_dir, result_list, pattern_type):
         """檢查指定方向上是否存在連四 (XXXX0 或 0XXXX)"""
         stones_str = self._get_stones_string(board, row, col, row_dir, col_dir)
 
@@ -139,17 +139,17 @@ class AnalysisHandler:
 
         if pattern1 in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連四模式 XXXX0！")
-            result_list.append((row, col, player))
+            result_list.append((row, col, player, pattern_type))
             return True
 
         if pattern2 in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連四模式 0XXXX！")
-            result_list.append((row, col, player))
+            result_list.append((row, col, player, pattern_type))
             return True
 
         return False
 
-    def check_jump_four_direction(self, board, row, col, player, row_dir, col_dir, result_list):
+    def check_jump_four_direction(self, board, row, col, player, row_dir, col_dir, result_list, pattern_type):
         """檢查指定方向上是否存在跳連四 (X0XXX、XXX0X 和 XX0XX)"""
         stones_str = self._get_stones_string(board, row, col, row_dir, col_dir)
 
@@ -160,15 +160,15 @@ class AnalysisHandler:
 
         if pattern1 in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳連四模式 X0XXX！")
-            result_list.append((row, col, player))
+            result_list.append((row, col, player, pattern_type))
 
         if pattern2 in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳連四模式 XXX0X！")
-            result_list.append((row, col, player))
+            result_list.append((row, col, player, pattern_type))
 
         if pattern3 in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳連四模式 XX0XX！")
-            result_list.append((row, col, player))
+            result_list.append((row, col, player, pattern_type))
 
         return # 確保有返回值
 
@@ -187,9 +187,11 @@ class AnalysisHandler:
     def check_jump_live_three_direction(self, board, row, col, player, row_dir, col_dir):
         """檢查指定方向上是否存在跳活三"""
         stones_str = self._get_stones_string(board, row, col, row_dir, col_dir, length=7)
-        pattern = f'0{player}0{player}{player}0'
+        pattern1 = f'0{player}0{player}{player}0'
+        pattern2 = f'0{player}{player}0{player}0'
+        logger.debug(f"check_jump_live_three_direction stones_str={stones_str}, pattern1={pattern1}, pattern2={pattern2}")
 
-        if pattern in stones_str:
+        if pattern1 in stones_str or pattern2 in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到跳活三模式！")
             return True
         else:
@@ -240,7 +242,7 @@ class AnalysisHandler:
                         self.last_analysis_move = None
                         break
                 else:
-                    logger.warning(f"Warn: Analysis Recon Invalid coord step {i+1} ({r},{c})")
+                    logger.warning(f"Warn: Analysis Recon Invalid coord step {i+1} at ({r},{c})")
                     self.last_analysis_move = None
                     break
 
