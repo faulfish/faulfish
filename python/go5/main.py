@@ -9,7 +9,7 @@ from utils import get_board_coords
 from game_logic import RenjuGame
 from drawing import (draw_grid, draw_stones, draw_hover_preview,
                      draw_info_panel, draw_analysis_panel, draw_live_threes, 
-                     draw_jump_live_threes, draw_live_fours, draw_influence_map) # 导入 draw_influence_map
+                     draw_jump_live_threes, draw_live_fours, draw_jump_fours, draw_influence_map) # 导入 draw_influence_map
 
 # Use an absolute path here
 # font_path = "/Users/alan/Desktop/faulfish/python/go5/Noto Sans SC/NotoSansSC-VariableFont_wght.ttf"  #  <--  YOUR ABSOLUTE PATH HERE
@@ -189,6 +189,7 @@ def main():
         live_three_positions = game.get_live_three_positions()
         jump_live_three_positions = game.get_jump_live_three_positions()
         live_four_positions = game.get_live_four_positions()
+        jump_four_positions = game.get_jump_four_positions()
 
         # --- 繪圖 ---
         try:
@@ -200,6 +201,7 @@ def main():
                 draw_live_threes(screen, live_three_positions)
                 draw_jump_live_threes(screen, jump_live_three_positions)
                 draw_live_fours(screen, live_four_positions)
+                draw_jump_fours(screen, jump_four_positions)
                 draw_influence_map(screen, influence_map, influence_font) # 绘制 influence_map
 
             if can_hover: draw_hover_preview(screen, hover_coords, game.current_player, board_to_draw)
