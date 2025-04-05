@@ -200,3 +200,7 @@ class RenjuGame:
     def get_jump_four_positions(self):
         """Returns the list of live four positions to draw."""
         return self.analysis_handler.get_jump_four_positions()
+
+    def get_five_positions(self):
+        """Returns the list of five positions to draw."""
+        return self.analysis_handler.get_five_positions()

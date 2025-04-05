@@ -70,7 +70,7 @@ def draw_live_threes(screen, live_three_positions):
 
 def draw_jump_live_threes(screen, jump_live_three_positions):
     """在棋盘上标记跳活三的位置。"""
-    _draw_pattern_marks(screen, jump_live_three_positions, (0, 0, 255), "square")  # 藍色，空心正方形
+    _draw_pattern_marks(screen, jump_live_three_positions, (0, 0, 255), "circle")  # 藍色，空心圓
 
 def draw_live_fours(screen, live_four_positions):
     """在棋盘上标记活四的位置。"""
@@ -80,22 +80,45 @@ def draw_jump_fours(screen, jump_four_positions):
     """在棋盘上标记跳四的位置。"""
     _draw_pattern_marks(screen, jump_four_positions, (0, 0, 255), "square")  # 藍色，空心正方形
 
-def _draw_pattern_marks(screen, positions, color, shape="circle"):
-    """在棋盤上繪製指定樣式標記的輔助函式"""
-    mark_radius = SQUARE_SIZE // 4 # 標記半徑
+def draw_live_fives(screen, live_five_positions):
+    """在棋盘上标记跳四的位置。"""
+    _draw_pattern_marks(screen, live_five_positions, (255, 0, 0), "triangle", True)  # 藍色，空心正方形
+
+def _draw_pattern_marks(screen, positions, color, shape="circle", filled=False):
+    """在棋盤上繪製指定樣式標記的輔助函式
+
+    Args:
+        screen: pygame 的 screen 物件，用於繪製。
+        positions: 包含要繪製標記的位置的列表，每個位置是一個 tuple (r, c, player, pattern_type)。
+        color: 標記的顏色。
+        shape: 標記的形狀，可以是 "circle"、"square" 或 "triangle"。
+        filled: 是否繪製實心標記，預設為 False (空心)。
+    """
+    mark_radius = SQUARE_SIZE // 4  # 標記半徑
+    mark_thickness = 0 if filled else 2  # 實心時不畫邊框，空心時邊框粗細為2
+
     for r, c, player, pattern_type in positions:
         try:
             center_x = MARGIN + c * SQUARE_SIZE
             center_y = MARGIN + r * SQUARE_SIZE
 
             if shape == "circle":
-                pygame.draw.circle(screen, color, (center_x, center_y), mark_radius, 2)  # 繪製空心圓
+                pygame.draw.circle(screen, color, (center_x, center_y), mark_radius, mark_thickness)
             elif shape == "square":
                 pygame.draw.rect(screen, color, (center_x - mark_radius, center_y - mark_radius,
-                                             mark_radius * 2, mark_radius * 2), 2)  # 繪製空心正方形
+                                             mark_radius * 2, mark_radius * 2), mark_thickness)
+            elif shape == "triangle":
+                # 計算三角形的三個頂點
+                point1 = (center_x, center_y - mark_radius)  # 上頂點
+                point2 = (center_x - mark_radius, center_y + mark_radius)  # 左下頂點
+                point3 = (center_x + mark_radius, center_y + mark_radius)  # 右下頂點
+                points = [point1, point2, point3]
+
+                pygame.draw.polygon(screen, color, points, mark_thickness) # 使用polygon繪製三角形
+
             else:
-                print(f"警告: 未知的標記形狀: {shape}") # 處理未知形狀
-            #print(f"繪製標記: ({r}, {c}), 顏色: {color}, 圓心: ({center_x}, {center_y}), 形狀: {shape}")  # Log
+                print(f"警告: 未知的標記形狀: {shape}")  # 處理未知形狀
+            # print(f"繪製標記: ({r}, {c}), 顏色: {color}, 圓心: ({center_x}, {center_y}), 形狀: {shape}")  # Log
 
         except Exception as e:
             print(f"繪製 {shape} 標記時出錯: {e}")

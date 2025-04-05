@@ -30,6 +30,7 @@ class AnalysisHandler:
         self.jump_live_three_positions = []
         self.four_positions = []
         self.jump_four_positions = []
+        self.five_positions = []  # 新增連五列表
 
         self.influence_map = [[0 for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
 
@@ -85,6 +86,7 @@ class AnalysisHandler:
         """更新連四和跳連四的位置"""
         self.four_positions = self.find_four_positions(self.analysis_board)
         self.jump_four_positions = self.find_jump_four_positions(self.analysis_board)
+        self.five_positions = self.find_five_positions(self.analysis_board) # 更新連五位置
 
     # 棋型查找 (Find)
     def find_live_threes(self, board):
@@ -102,6 +104,10 @@ class AnalysisHandler:
     def find_jump_four_positions(self, board):
         """尋找跳連四"""
         return self._find_pattern_positions_direction(board, self.check_jump_four_direction, "jump_four")
+
+    def find_five_positions(self, board):
+        """尋找連五"""
+        return self._find_pattern_positions_direction(board, self.check_five_direction, "five")  # 新增連五尋找
 
     def _find_pattern_positions_direction(self, board, check_func, pattern_type):
         """尋找指定棋型，需要指定方向的通用方法"""
@@ -196,6 +202,19 @@ class AnalysisHandler:
 
         return
 
+    def check_five_direction(self, board, row, col, player, row_dir, col_dir, result_list, pattern_type):
+        """檢查指定方向上是否存在連五 (XXXXX)"""
+        stones_str = self._get_stones_string(board, row, col, row_dir, col_dir)
+
+        # 檢查 XXXXX 模式
+        pattern = f'{player}{player}{player}{player}{player}'
+
+        if pattern in stones_str:
+            logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連五模式 XXXXX！")
+            result_list.append((row, col, player, pattern_type))
+
+        return
+
     # 輔助方法
     def _get_stones_string(self, board, row, col, row_dir, col_dir, length=11):
         """獲取指定方向上的棋子字串"""
@@ -252,6 +271,10 @@ class AnalysisHandler:
     def get_jump_four_positions(self):
         """獲取跳連四位置"""
         return self.jump_four_positions
+
+    def get_five_positions(self):
+        """獲取連五位置"""
+        return self.five_positions  # 新增連五位置獲取
 
     def simulate_move(self, board, row, col, player):
         """模擬在指定位置下子，並返回新的棋盤狀態"""
