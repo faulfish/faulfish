@@ -90,8 +90,39 @@ class AnalysisHandler:
 
     # 棋型查找 (Find)
     def find_live_threes(self, board):
-        """尋找活三"""
-        return self._find_pattern_positions_direction(board, self.check_live_three_direction, "live_three")
+        """尋找活三, 並且判斷33"""
+        #return self._find_pattern_positions_direction(board, self.check_live_three_direction, "live_three")
+        positions = []
+        for player in [BLACK, WHITE]:
+            for row in range(BOARD_SIZE):
+                for col in range(BOARD_SIZE):
+                    if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
+                        # 檢查所有方向
+                        #print(f"假設玩家下一手點下去的點board[{row}][{col}] = {player}")
+                        #print(f"然後去找水平,垂直,正斜,逆斜, 所產生的線，用字串表示0001210表示, 再去找是否有要找的pattern01110之類的")
+                        #board[row][col] = player ###先假設他是玩家下一手點下去的點
+                        temp_board = self.simulate_move(board,row,col,player)
+
+                        # 统计活三数量
+                        live_three_count = 0
+                        temp_positions = [] # 临时存储活三位置，不直接修改 positions
+
+                        self.check_live_three_direction(temp_board, row, col, player, 1, 0, temp_positions, "live_three")  # 水平
+                        self.check_live_three_direction(temp_board, row, col, player, 0, 1, temp_positions, "live_three")  # 垂直
+                        self.check_live_three_direction(temp_board, row, col, player, 1, 1, temp_positions, "live_three")  # 正斜線
+                        self.check_live_three_direction(temp_board, row, col, player, 1, -1, temp_positions, "live_three")  # 反斜線
+
+                        #check_func执行后，活三的位置已经记录在 temp_positions
+                        live_three_count = len(temp_positions)
+                        
+                        # 檢查是否形成34
+                        if self.check_34(temp_board, row, col, player):
+                            print(f"在 ({row}, {col}) 找到 34！")
+                            positions.extend(temp_positions)  # 将临时位置添加到最终结果
+                        elif live_three_count >= 2:
+                            print(f"在 ({row}, {col}) 找到 33！")
+                            positions.extend(temp_positions)  # 将临时位置添加到最终结果
+        return positions
 
     def find_jump_live_threes(self, board):
         """尋找跳活三"""
@@ -183,7 +214,7 @@ class AnalysisHandler:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到活三模式 0XXX0！")
             result_list.append((row, col, player, pattern_type))
 
-        return
+        return #确保所有case都会return
 
     def check_jump_live_three_direction(self, board, row, col, player, row_dir, col_dir, result_list, pattern_type):
         """檢查指定方向上是否存在跳活三"""
@@ -212,8 +243,37 @@ class AnalysisHandler:
         if pattern in stones_str:
             logger.info(f"在 ({row}, {col}) 方向 ({row_dir}, {col_dir}) 找到連五模式 XXXXX！")
             result_list.append((row, col, player, pattern_type))
+            return True
 
-        return
+        return False
+
+    def check_34(self, board, row, col, player):
+        """檢查在指定位置下子是否會形成34棋型 (同時存在活三和活四/沖四)"""
+        # 檢查是否形成活三
+        has_live_three = False
+        temp_positions = []
+        self.check_live_three_direction(board, row, col, player, 1, 0, temp_positions, "live_three")  # 水平
+        self.check_live_three_direction(board, row, col, player, 0, 1, temp_positions, "live_three")  # 垂直
+        self.check_live_three_direction(board, row, col, player, 1, 1, temp_positions, "live_three")  # 正斜線
+        self.check_live_three_direction(board, row, col, player, 1, -1, temp_positions, "live_three")  # 反斜線
+
+        if len(temp_positions) > 0:
+            has_live_three = True
+
+        # 檢查是否形成活四或冲四
+        has_live_four = False
+        has_冲四 = False #待定
+
+        temp_positions2 = []
+        self.check_four_direction(board, row, col, player, 1, 0, temp_positions2, "four")  # 水平
+        self.check_four_direction(board, row, col, player, 0, 1, temp_positions2, "four")  # 垂直
+        self.check_four_direction(board, row, col, player, 1, 1, temp_positions2, "four")  # 正斜線
+        self.check_four_direction(board, row, col, player, 1, -1, temp_positions2, "four")  # 反斜線
+
+        if len(temp_positions2) > 0:
+            has_live_four = True
+
+        return has_live_three and (has_live_four or has_冲四)
 
     # 輔助方法
     def _get_stones_string(self, board, row, col, row_dir, col_dir, length=11):
