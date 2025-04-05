@@ -2,6 +2,9 @@
 import logging
 from config import (BOARD_SIZE, EMPTY, BLACK, WHITE)
 from utils import is_on_board
+import os
+
+print(os.getcwd())
 
 # 設定 logger
 logger = logging.getLogger(__name__)
@@ -108,7 +111,7 @@ class AnalysisHandler:
                 for col in range(BOARD_SIZE):
                     if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
                         board[row][col] = player
-                        if check_func(board, row, col, player): #傳入 pattern_type
+                        if check_func(board, row, col, player, pattern_type): #傳入 pattern_type
                             logger.info(f"找到 {pattern_type}: ({row}, {col}), 玩家: {player}")
                             positions.append((row, col, player, pattern_type))  # 儲存棋型類型
                         board[row][col] = EMPTY
@@ -264,7 +267,7 @@ class AnalysisHandler:
         self.four_positions = self.find_four_positions(self.analysis_board)
         self.jump_four_positions = self.find_jump_four_positions(self.analysis_board)
 
-    def is_live_three(self, board, row, col, player):
+    def is_live_three(self, board, row, col, player, pattern_type):
         """檢查在指定位置落子是否會形成活三"""
         stones_str = self._get_stones_string(board, row, col, 0, 1, length=7) #水平
         if f'0{player}{player}{player}0' in stones_str:
@@ -283,7 +286,7 @@ class AnalysisHandler:
             return True
         return False
 
-    def is_jump_live_three(self, board, row, col, player):
+    def is_jump_live_three(self, board, row, col, player, pattern_type):
         """檢查在指定位置落子是否會形成跳活三"""
         stones_str = self._get_stones_string(board, row, col, 0, 1, length=7) #水平
         if f'0{player}0{player}{player}0' in stones_str:
