@@ -76,9 +76,9 @@ class AIPlayer:  # 封装 AI 逻辑，避免与 game_logic 耦合
                         if count == threat_level and ends >= 1:
                             threat_exists = True
                             break
-                    board[r][c] = EMPTY
-                    if threat_exists:
-                        threatening_moves.append((r, c))
+                board[r][c] = EMPTY
+                if threat_exists:
+                    threatening_moves.append((r, c))
             return threatening_moves
 
         # Strategy 2.25: Block Threatening Four
@@ -145,14 +145,22 @@ class AIPlayer:  # 封装 AI 逻辑，避免与 game_logic 耦合
         # 策略 4: 優先選擇形成活三/連四/連五的位置
         best_moves = []
         for r, c in candidate_moves:
-            if (r, c, ai_player, "five") in five_positions:  # 優先連五
-                best_moves.append((r, c))
-            elif (r, c, ai_player, "four") in four_positions:
-                best_moves.append((r, c))
-            elif (r, c, ai_player, "jump_four") in jump_four_positions:
-                best_moves.append((r, c))
-            elif (r, c, ai_player, "live_three") in live_three_positions:
-                best_moves.append((r, c))
+            # 計算當前位置的威脅程度 (例如：可以形成活三、連四等)
+            threat_level = self.calculate_threat_level(r, c, ai_player, board, analysis_handler)
+
+            # 判斷哪些位置既能防守又能進攻 (例如：既能阻擋對手，又能形成威脅)
+            is_defensive = self.is_defensive_move(r, c, ai_player, board, opponent_player, analysis_handler)
+            is_offensive = threat_level > 0
+
+            # 綜合考慮威脅程度、防守能力和進攻能力，選擇最佳位置
+            if is_offensive and is_defensive:
+                best_moves.append((r, c, threat_level)) # 加入威胁等级
+            elif is_offensive:
+                best_moves.append((r, c, threat_level/2)) # 只有进攻，威胁等级减半
+
+        # 根据威胁等级排序
+        best_moves.sort(key=lambda x: x[2], reverse=True) # 按照威胁等级排序
+        best_moves = [m[:2] for m in best_moves] # 去除威胁等级信息
 
         if best_moves:
             move = random.choice(best_moves)
@@ -263,6 +271,40 @@ class AIPlayer:  # 封装 AI 逻辑，避免与 game_logic 耦合
         else:
             print("Learn: No changes to opening book.")
         print("--- Exiting learn_from_loss ---")
+
+    def calculate_threat_level(self, r, c, player, board, analysis_handler):
+        """計算指定位置的威脅程度。"""
+        temp_board = self.simulate_move(board, r, c, player)
+        threat_level = 0
+        if (r, c, player, "five") in analysis_handler.get_five_positions():
+            threat_level += 5
+        elif (r, c, player, "four") in analysis_handler.get_four_positions():
+            threat_level += 4
+        elif (r, c, player, "jump_four") in analysis_handler.get_jump_four_positions():
+            threat_level += 3
+        elif (r, c, player, "live_three") in analysis_handler.get_live_three_positions():
+            threat_level += 2
+        if analysis_handler.check_34(temp_board, r, c, player):
+            threat_level += 1 #形成33/44
+
+        return threat_level
+
+    def is_defensive_move(self, r, c, player, board, opponent_player, analysis_handler):
+        """判斷指定位置是否為防守位置。"""
+        # 检查是否能阻挡对手的威胁
+        temp_board = self.simulate_move(board, r, c, player)
+        analysis_handler.update_live_three_positions() #更新
+        analysis_handler.update_live_four_positions()
+        four_positions = analysis_handler.get_four_positions()  # 從 AnalysisHandler 獲取
+        jump_four_positions = analysis_handler.get_jump_four_positions() # 從 AnalysisHandler 獲取
+        #能block对手的四，就算防御
+        return ((r, c, opponent_player, "four") in four_positions) or ((r, c, opponent_player, "jump_four") in jump_four_positions)
+
+    def simulate_move(self, board, row, col, player):
+        """模擬在指定位置下子，並返回新的棋盤狀態"""
+        new_board = [r[:] for r in board]  # 複製棋盤
+        new_board[row][col] = player
+        return new_board
 
 #  创建 AIPlayer 实例 (在 game_logic 中)
 ai_player = AIPlayer()
