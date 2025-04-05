@@ -52,19 +52,19 @@ class AnalysisHandler:
         for i in range(target_idx + 1):
             if i < len(self.game.move_log):
                 data = self.game.move_log[i]  # 使用 self.game.move_log
-                r, c, p = data.get('row', -1), data.get('col', -1), data.get('player', 0)
-                if is_on_board(r, c):
-                    if self.analysis_board[r][c] == EMPTY:  # 這裡不要改動
-                        self.analysis_board[r][c] = p
-                        self.update_influence_map(p, r, c)  # 傳入下棋者是誰
+                row, col, player = data.get('row', -1), data.get('col', -1), data.get('player', 0)
+                if is_on_board(row, col):
+                    if self.analysis_board[row][col] == EMPTY:  # 這裡不要改動
+                        self.analysis_board[row][col] = player
+                        self.update_influence_map(player, row, col)  # 傳入下棋者是誰
                         if i == target_idx:
-                            self.last_analysis_move = (r, c)
+                            self.last_analysis_move = (row, col)
                     else:
-                        logger.warning(f"Warn: Analysis Recon Overwrite step {i+1} at ({r},{c})")
+                        logger.warning(f"Warn: Analysis Recon Overwrite step {i+1} at ({row},{col})")
                         self.last_analysis_move = None
                         break
                 else:
-                    logger.warning(f"Warn: Analysis Recon Invalid coord step {i+1} at ({r},{c})")
+                    logger.warning(f"Warn: Analysis Recon Invalid coord step {i+1} at ({row},{col})")
                     self.last_analysis_move = None
                     break
 
@@ -111,15 +111,16 @@ class AnalysisHandler:
                 for col in range(BOARD_SIZE):
                     if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
                         # 檢查所有方向
-                        print(f"假設玩家下一手點下去的點board[{row}][{col}] = {player}")
-                        print(f"然後去找水平,垂直,正斜,逆斜, 所產生的線，用字串表示0001210表示, 再去找是否有要找的pattern01110之類的")
-                        board[row][col] = player ###先假設他是玩家下一手點下去的點
-                        check_func(board, row, col, player, 1, 0, positions, pattern_type)  # 水平
-                        check_func(board, row, col, player, 0, 1, positions, pattern_type)  # 垂直
-                        check_func(board, row, col, player, 1, 1, positions, pattern_type)  # 正斜線
-                        check_func(board, row, col, player, 1, -1, positions, pattern_type)  # 反斜線
-                        print(f"還原=>假設玩家下一手點下去的點board[{row}][{col}] = {EMPTY}")
-                        board[row][col] = EMPTY
+                        #print(f"假設玩家下一手點下去的點board[{row}][{col}] = {player}")
+                        #print(f"然後去找水平,垂直,正斜,逆斜, 所產生的線，用字串表示0001210表示, 再去找是否有要找的pattern01110之類的")
+                        #board[row][col] = player ###先假設他是玩家下一手點下去的點
+                        temp_board = self.simulate_move(board,row,col,player)
+                        check_func(temp_board, row, col, player, 1, 0, positions, pattern_type)  # 水平
+                        check_func(temp_board, row, col, player, 0, 1, positions, pattern_type)  # 垂直
+                        check_func(temp_board, row, col, player, 1, 1, positions, pattern_type)  # 正斜線
+                        check_func(temp_board, row, col, player, 1, -1, positions, pattern_type)  # 反斜線
+                        #print(f"還原=>假設玩家下一手點下去的點board[{row}][{col}] = {EMPTY}")
+                        #board[row][col] = EMPTY
         return positions
 
     # 棋型檢查 (Check)
@@ -205,11 +206,11 @@ class AnalysisHandler:
         for i in range(start, end):  # 擴大範圍，檢查更多位置
             r, c = row + i * row_dir, col + i * col_dir
             if is_on_board(r, c):
-                stones.append(board[r][c])
+                stones.append(str(board[r][c]))
             else:
-                stones.append(0)  # 超出邊界
+                stones.append('0')  # 超出邊界
 
-        return ''.join(map(str, stones))
+        return ''.join(stones)
 
     def update_influence_map(self, player, x, y):
         """更新影響力地圖"""
