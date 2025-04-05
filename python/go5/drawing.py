@@ -41,25 +41,26 @@ def draw_grid(screen):
 def draw_stones(screen, board, last_move, game_state):
     """繪製棋盤上目前的棋子。"""
     try:
-        stone_radius = SQUARE_SIZE // 2 - 3  # 留下與格線的小間隙
-        for r in range(BOARD_SIZE):
-            for c in range(BOARD_SIZE):
-                player = board[r][c]
-                if player != EMPTY:
+        if game_state != GameState.PAUSED:
+            stone_radius = SQUARE_SIZE // 2 - 3  # 留下與格線的小間隙
+            for r in range(BOARD_SIZE):
+                for c in range(BOARD_SIZE):
+                    player = board[r][c]
+                    if player != EMPTY:
+                        center_x = MARGIN + c * SQUARE_SIZE
+                        center_y = MARGIN + r * SQUARE_SIZE
+                        stone_color = BLACK_STONE if player == BLACK else WHITE_STONE
+                        pygame.draw.circle(screen, stone_color, (center_x, center_y), stone_radius)
+
+            # 高亮標示最後一步棋
+            if last_move:
+                r, c = last_move
+                # 在繪製高亮前確保 last_move 座標有效
+                if 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE:
                     center_x = MARGIN + c * SQUARE_SIZE
                     center_y = MARGIN + r * SQUARE_SIZE
-                    stone_color = BLACK_STONE if player == BLACK else WHITE_STONE
-                    pygame.draw.circle(screen, stone_color, (center_x, center_y), stone_radius)
-
-        # 高亮標示最後一步棋
-        if last_move:
-            r, c = last_move
-            # 在繪製高亮前確保 last_move 座標有效
-            if 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE:
-                center_x = MARGIN + c * SQUARE_SIZE
-                center_y = MARGIN + r * SQUARE_SIZE
-                highlight_radius = stone_radius // 3
-                pygame.draw.circle(screen, HIGHLIGHT_COLOR, (center_x, center_y), highlight_radius)
+                    highlight_radius = stone_radius // 3
+                    pygame.draw.circle(screen, HIGHLIGHT_COLOR, (center_x, center_y), highlight_radius)
     except Exception as e:
         print(f"繪製棋子時出錯: {e}")
 
