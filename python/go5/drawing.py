@@ -6,7 +6,7 @@ from config import (BOARD_SIZE, SQUARE_SIZE, MARGIN, GRID_WIDTH, GRID_HEIGHT,
                     INFO_BG_COLOR, ANALYSIS_BG_COLOR, INFO_TEXT_COLOR, HIGHLIGHT_COLOR,
                     HOVER_BLACK_COLOR, HOVER_WHITE_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR,
                     MOVE_LIST_HIGHLIGHT_COLOR, EMPTY, BLACK, WHITE, GameState,
-                    INFO_PANEL_RECT, ANALYSIS_PANEL_RECT)
+                    INFO_PANEL_RECT, ANALYSIS_PANEL_RECT,MARKER_COLOR_CURRENT_PLAYER,MARKER_COLOR_OPPONENT,WINNING_MOVE_HIGHLIGHT_COLOR)
 from utils import format_time
 
 def draw_grid(screen):
@@ -65,77 +65,99 @@ def draw_stones(screen, board, last_move, game_state):
         print(f"繪製棋子時出錯: {e}")
 
 
-def draw_live_threes(screen, live_three_positions):
+def draw_live_threes(screen, live_three_positions, current_player):
     """在棋盘上标记活三的位置。"""
-    _draw_pattern_marks(screen, live_three_positions, (255, 0, 0), "circle", True)  # 紅色，空心圓
+    _draw_pattern_marks(screen, live_three_positions, current_player, "circle", True)  # 紅色，空心圓
 
-def draw_jump_live_threes(screen, jump_live_three_positions):
+def draw_jump_live_threes(screen, jump_live_three_positions, current_player):
     """在棋盘上标记跳活三的位置。"""
-    _draw_pattern_marks(screen, jump_live_three_positions, (255, 0, 0), "circle")  # 藍色，空心圓
+    _draw_pattern_marks(screen, jump_live_three_positions, current_player, "circle")  # 藍色，空心圓
 
-def draw_live_fours(screen, live_four_positions):
+def draw_live_fours(screen, live_four_positions, current_player):
     """在棋盘上标记活四的位置。"""
-    _draw_pattern_marks(screen, live_four_positions, (0, 0, 255), "square")  # 紅色，空心正方形
+    _draw_pattern_marks(screen, live_four_positions, current_player, "square")  # 紅色，空心正方形
 
-def draw_jump_fours(screen, jump_four_positions):
+def draw_jump_fours(screen, jump_four_positions, current_player):
     """在棋盘上标记跳四的位置。"""
-    _draw_pattern_marks(screen, jump_four_positions, (255, 255, 0), "square")  # 藍色，空心正方形
+    _draw_pattern_marks(screen, jump_four_positions, current_player, "square")  # 藍色，空心正方形
 
-def draw_live_fives(screen, live_five_positions):
+def draw_live_fives(screen, live_five_positions, current_player):
     """在棋盘上标记跳四的位置。"""
-    _draw_pattern_marks(screen, live_five_positions, (255, 0, 0), "triangle", True)  # 藍色，空心正方形
+    _draw_pattern_marks(screen, live_five_positions, current_player, "triangle", True)  # 藍色，空心正方形
 
-def _draw_pattern_marks(screen, positions_dict, color, shape="circle", filled=False):
-    """在棋盤上繪製指定樣式標記的輔助函式
+def _draw_pattern_marks(screen, positions_dict, current_player, shape="circle", filled=False):
+    """在棋盤上繪製指定樣式標記的輔助函式，顏色區分當前玩家和對手。
 
     Args:
         screen: pygame 的 screen 物件，用於繪製。
-        positions_dict: 包含要繪製標記的位置的字典，
-                       鍵是玩家 (BLACK/WHITE)，值是包含 tuple (r, c, player, pattern_type) 的列表。
-                       例如: {BLACK: [(r1, c1, BLACK, 'live_three'), ...], WHITE: [...] }
-        color: 標記的顏色。
-        shape: 標記的形狀，可以是 "circle"、"square" 或 "triangle"。
-        filled: 是否繪製實心標記，預設為 False (空心)。
+        positions_dict: 包含要繪製標記的位置的字典 {player: [(r, c, p, type), ...]}.
+        current_player: 當前輪到誰下棋 (BLACK 或 WHITE).
+        shape: 標記的形狀 ("circle", "square", "triangle").
+        filled: 是否繪製實心標記。
     """
-    mark_radius = SQUARE_SIZE // 4  # 標記半徑
-    mark_thickness = 0 if filled else 2  # 實心時不畫邊框，空心時邊框粗細為2
+    mark_radius = SQUARE_SIZE // 4
+    mark_thickness = 0 if filled else 2
 
-    # --- 修改迭代邏輯以處理字典 ---
     if not isinstance(positions_dict, dict):
-        print(f"警告: _draw_pattern_marks 預期收到字典，但收到了 {type(positions_dict)}。 跳過此類標記的繪製。")
-        return # 或者可以嘗試處理舊的列表格式作為備用
+        # 維持之前的警告，以防萬一
+        print(f"警告: _draw_pattern_marks 預期收到字典，但收到了 {type(positions_dict)}。")
+        return
 
-    # 遍歷字典中的每個玩家的列表
-    for player_key in positions_dict:
-        player_specific_positions = positions_dict[player_key]
-        # 遍歷該玩家列表中的每個位置元組
-        for r, c, player, pattern_type in player_specific_positions: # player變數來自元組，表示是哪個玩家下在此處能形成模式
+    for player_key, player_specific_positions in positions_dict.items():
+        # 根據這個威脅屬於誰，選擇顏色
+        marker_color = MARKER_COLOR_CURRENT_PLAYER if player_key == current_player else MARKER_COLOR_OPPONENT
+
+        for r, c, player, pattern_type in player_specific_positions:
             try:
                 center_x = MARGIN + c * SQUARE_SIZE
                 center_y = MARGIN + r * SQUARE_SIZE
 
-                # --- 繪製邏輯保持不變 ---
+                # 使用選擇的 marker_color 進行繪製
                 if shape == "circle":
-                    pygame.draw.circle(screen, color, (center_x, center_y), mark_radius, mark_thickness)
+                    pygame.draw.circle(screen, marker_color, (center_x, center_y), mark_radius, mark_thickness)
                 elif shape == "square":
-                    pygame.draw.rect(screen, color, (center_x - mark_radius, center_y - mark_radius,
-                                                 mark_radius * 2, mark_radius * 2), mark_thickness)
+                    pygame.draw.rect(screen, marker_color, (center_x - mark_radius, center_y - mark_radius,
+                                                         mark_radius * 2, mark_radius * 2), mark_thickness)
                 elif shape == "triangle":
-                    # 計算三角形的三個頂點
-                    point1 = (center_x, center_y - mark_radius)  # 上頂點
-                    point2 = (center_x - mark_radius, center_y + mark_radius)  # 左下頂點
-                    point3 = (center_x + mark_radius, center_y + mark_radius)  # 右下頂點
+                    point1 = (center_x, center_y - mark_radius)
+                    point2 = (center_x - mark_radius, center_y + mark_radius)
+                    point3 = (center_x + mark_radius, center_y + mark_radius)
                     points = [point1, point2, point3]
-
-                    pygame.draw.polygon(screen, color, points, mark_thickness) # 使用polygon繪製三角形
-
+                    pygame.draw.polygon(screen, marker_color, points, mark_thickness)
                 else:
-                    print(f"警告: 未知的標記形狀: {shape}")  # 處理未知形狀
-                # print(f"繪製標記: ({r}, {c}), 顏色: {color}, 圓心: ({center_x}, {center_y}), 形狀: {shape}")  # Log
+                    print(f"警告: 未知的標記形狀: {shape}")
 
             except Exception as e:
                 print(f"繪製 {shape} 標記在 ({r},{c}) 時出錯: {e}")
-    # --- 字典迭代結束 ---
+
+def draw_winning_move_highlight(screen, winning_positions_list):
+    """用特殊的雙圈標記標示立即致勝的位置。
+
+    Args:
+        screen: pygame screen 物件。
+        winning_positions_list: 包含 (r, c, player, pattern_type) 元組的列表，
+                                這些是當前玩家可以下子獲勝的位置。
+    """
+    outer_radius = SQUARE_SIZE // 3  # 外圈半徑稍大
+    inner_radius = SQUARE_SIZE // 5  # 內圈半徑
+    line_thickness = 2              # 圈的線寬
+
+    if not winning_positions_list:
+        return
+
+    # winning_positions_list 預期是特定玩家的列表
+    for r, c, player, pattern_type in winning_positions_list:
+        try:
+            center_x = MARGIN + c * SQUARE_SIZE
+            center_y = MARGIN + r * SQUARE_SIZE
+
+            # 繪製外圈
+            pygame.draw.circle(screen, WINNING_MOVE_HIGHLIGHT_COLOR, (center_x, center_y), outer_radius, line_thickness)
+            # 繪製內圈
+            pygame.draw.circle(screen, WINNING_MOVE_HIGHLIGHT_COLOR, (center_x, center_y), inner_radius, line_thickness)
+
+        except Exception as e:
+            print(f"繪製致勝點標記在 ({r},{c}) 時出錯: {e}")
 
 # --- 如何調用（示例，假設在主繪圖循環或 draw_analysis_info 函數中） ---
 # 假設 analysis_handler 已經更新
