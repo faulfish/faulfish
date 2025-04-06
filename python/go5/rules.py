@@ -126,22 +126,44 @@ def check_forbidden_move_at(r, c, board):
     return None
 
 
+# rules.py
+
 def is_legal_move(r, c, player, move_count, board):
-    """綜合檢查落子是否合法 (邊界, 佔用, 天元規則, 禁手)。"""
+    """
+    綜合檢查落子是否合法 (邊界, 佔用, 天元規則, 禁手)。
+    此版本使用棋盤副本，避免副作用。
+    """
+    # 1. 基礎檢查：邊界和是否空點
     if not is_on_board(r, c) or board[r][c] != EMPTY:
         return False, "Occupied or Off-board"
 
+    # --- 創建棋盤副本 ---
+    temp_board = [row[:] for row in board]
+
+    # 2. 天元規則 (僅限黑方第一步)
+    if player == BLACK and move_count == 0:
+        if (r, c) == (7, 7):
+            return True, None # 天元合法
+        else:
+            return False, "First move must be Tengen (7,7)" # 非天元非法
+
+    # 3. 模擬落子 (在副本上)
+    temp_board[r][c] = player
+
+    # 4. 檢查是否獲勝 (五連優先)
+    if check_win_condition_at(r, c, player, temp_board):
+        # 獲勝則無視禁手，直接返回合法
+        return True, None # "Winning move" - 獲勝即合法
+
+    # 5. 如果不獲勝，且是黑方，則檢查禁手
     if player == BLACK:
-        if move_count == 0:  # 第一步規則
-            return (True, None) if (r, c) == (7, 7) else (False, "First move must be Tengen (7,7)")
-        else:  # 後續的黑棋走法 - 檢查禁手
-            # 臨時模擬落子以檢查規則
-            board[r][c] = player
-            is_win = check_win_condition_at(r, c, player, board)
-            forbidden_reason = None
-            if not is_win:
-                forbidden_reason = check_forbidden_move_at(r, c, board)
-            board[r][c] = EMPTY  # 還原模擬
-            return (False, forbidden_reason) if forbidden_reason else (True, None)
-    else:  # 白棋
-        return True, None  # 白棋沒有禁手或第一步規則
+        forbidden_reason = check_forbidden_move_at(r, c, temp_board)
+        if forbidden_reason:
+            # 如果是禁手，則非法
+            return False, forbidden_reason # 返回具體的禁手原因
+        else:
+            # 不是禁手，則合法
+            return True, None # "Legal non-winning move for Black"
+    else: # 白方
+        # 白方沒有禁手，只要不獲勝就合法
+        return True, None # "Legal move for White"

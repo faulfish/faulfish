@@ -201,8 +201,13 @@ class AnalysisHandler:
         # 找到一個就要添加，因為 AI 可能需要知道所有能形成四的點
         if pattern1 in stones_str or pattern2 in stones_str:
             logger.debug(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
-            # print(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
-            result_list.append((row, col, player, pattern_type))
+                               
+            # --- 在這裡加入禁手過濾 ---
+            # 檢查 (row, col) 是否為44禁手
+            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, board)
+            if is_valid:
+                result_list.append((row, col, player, pattern_type))
+
             # return True # 不需要返回，因為要找所有方向
 
     def check_jump_four_direction(self, board, row, col, player, row_dir, col_dir, result_list, pattern_type):
@@ -212,11 +217,14 @@ class AnalysisHandler:
         pattern2 = f'{player}{player}{player}0{player}'
         pattern3 = f'{player}{player}0{player}{player}'
 
-        found = False
         if pattern1 in stones_str or pattern2 in stones_str or pattern3 in stones_str:
             logger.debug(f"Player {player} found potential Jump Four at ({row}, {col}) dir ({row_dir},{col_dir})")
-            result_list.append((row, col, player, pattern_type))
-            found = True
+            # --- 在這裡加入禁手過濾 ---
+            # 檢查 (row, col) 是否為44禁手
+            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, board)
+            if is_valid:
+                result_list.append((row, col, player, pattern_type))
+
         # return found # 不需要返回
 
     def check_live_three_direction(self, board, row, col, player, row_dir, col_dir, result_list, pattern_type):
@@ -249,7 +257,11 @@ class AnalysisHandler:
 
         if pattern in stones_str:
             logger.debug(f"Player {player} found potential Five at ({row}, {col}) dir ({row_dir},{col_dir})")
-            result_list.append((row, col, player, pattern_type))
+            # --- 在這裡加入禁手過濾 ---
+            # 檢查 (row, col) 是否為長連禁手
+            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, board)
+            if is_valid:
+                result_list.append((row, col, player, pattern_type))
             # return True # 不需要返回
 
     def check_34(self, board, row, col, player):
