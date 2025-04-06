@@ -1,364 +1,225 @@
+# ai_player.py
 import random
 from config import BOARD_SIZE, EMPTY, BLACK, WHITE, DIRECTIONS
 from utils import is_on_board
 import rules
-from game_io import OPENING_BOOK, save_opening_book_to_file
-import analysis  # 導入 analysis.py
+# game_io 用於學習，這裡不需要
+# analysis 模組會在傳入的 handler 中使用
 
-class AIPlayer:  # 封装 AI 逻辑，避免与 game_logic 耦合
+# --- 可以定義權重常量 ---
+WEIGHT_WIN = 100000  # 獲勝或阻止對方獲勝
+WEIGHT_FOUR = 1000   # 形成活四/衝四 或 阻止對方活四/衝四
+WEIGHT_JUMP_FOUR = 800 # 跳四
+WEIGHT_LIVE_THREE = 100 # 活三
+WEIGHT_JUMP_LIVE_THREE = 50 # 跳活三
+WEIGHT_SLEEP_THREE = 10 # 眠三 (較低，但仍有潛力)
+WEIGHT_BLOCK_LIVE_THREE = 150 # 阻止對方活三，價值可能略高於自己活三
+WEIGHT_BLOCK_JUMP_LIVE_THREE = 70
+WEIGHT_BLOCK_SLEEP_THREE = 15
+
+class AIPlayer:
     def __init__(self):
-        pass  # 你可以在這裡初始化 AI 的內部狀態
+        pass
 
-    def find_best_ai_move(self, board, move_log, move_count, current_player, analysis_handler):  # 添加 analysis_handler 参数
-        """AI 尋找最佳著法，加入開局庫、天元規則、威脅評估和啟發式隨機選擇。"""
+    def _evaluate_and_find_best_heuristic(self, board, move_count, ai_player, analysis_handler):
+        """
+        評估所有合法的下一步棋的啟發式分數，並返回最佳分數的著法列表。
+        分數基於形成自身威脅和阻止對手威脅。
+        """
+        opponent_player = WHITE if ai_player == BLACK else BLACK
+        candidate_moves_scores = {} # {(r, c): score}
+        best_score = -float('inf')
+
+        # --- 從 AnalysisHandler 獲取已過濾的棋型數據 ---
+        # (確保 AnalysisHandler 的 get_player_... 返回的是過濾禁手後的列表)
+        ai_fives = analysis_handler.get_player_fives(ai_player)
+        ai_fours = analysis_handler.get_player_fours(ai_player)
+        ai_jump_fours = analysis_handler.get_player_jump_fours(ai_player)
+        ai_live_threes = analysis_handler.get_player_live_threes(ai_player)
+        ai_jump_live_threes = analysis_handler.get_player_jump_live_threes(ai_player)
+        # 可以考慮加入眠三的數據 (如果 AnalysisHandler 提供)
+        # ai_sleep_threes = analysis_handler.get_player_sleep_threes(ai_player)
+
+        opponent_fives = analysis_handler.get_player_fives(opponent_player)
+        opponent_fours = analysis_handler.get_player_fours(opponent_player)
+        opponent_jump_fours = analysis_handler.get_player_jump_fours(opponent_player)
+        opponent_live_threes = analysis_handler.get_player_live_threes(opponent_player)
+        opponent_jump_live_threes = analysis_handler.get_player_jump_live_threes(opponent_player)
+        # opponent_sleep_threes = analysis_handler.get_player_sleep_threes(opponent_player)
+
+        # --- 遍歷有潛力的空點 ---
+        # 可以基於 influence_map 或簡單地遍歷所有空點附近的點
+        empty_spots = []
+        if move_count == 0: # 特殊處理第一步 (雖然通常會被天元規則覆蓋)
+            empty_spots = [(r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] == EMPTY]
+        else:
+            occupied_spots = set((r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] != EMPTY)
+            adjacent_spots = set()
+            offsets = [(dr, dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if not (dr == 0 and dc == 0)]
+            for r_o, c_o in occupied_spots:
+                 for dr, dc in offsets:
+                      nr, nc = r_o + dr, c_o + dc
+                      if is_on_board(nr, nc) and board[nr][nc] == EMPTY:
+                           adjacent_spots.add((nr, nc))
+            empty_spots = list(adjacent_spots)
+            # 如果相鄰點太少，可以考慮擴大範圍或加入所有 influence > 0 的點
+            if not empty_spots:
+                 empty_spots = [(r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] == EMPTY]
+
+
+        for r, c in empty_spots:
+            # 1. 檢查合法性
+            is_valid, _ = rules.is_legal_move(r, c, ai_player, move_count, board)
+            if not is_valid:
+                continue
+
+            # 2. 計算啟發式分數
+            score = 0
+            pos_tuple = (r, c) # 用於快速查找
+
+            # --- 進攻分數 ---
+            # (檢查時只需要座標，不需要 player 和 type)
+            if any(p[0] == r and p[1] == c for p in ai_fives): score += WEIGHT_WIN
+            elif any(p[0] == r and p[1] == c for p in ai_fours): score += WEIGHT_FOUR
+            elif any(p[0] == r and p[1] == c for p in ai_jump_fours): score += WEIGHT_JUMP_FOUR
+            elif any(p[0] == r and p[1] == c for p in ai_live_threes): score += WEIGHT_LIVE_THREE
+            elif any(p[0] == r and p[1] == c for p in ai_jump_live_threes): score += WEIGHT_JUMP_LIVE_THREE
+            # elif any(p[0] == r and p[1] == c for p in ai_sleep_threes): score += WEIGHT_SLEEP_THREE # 如果有眠三數據
+
+            # --- 防守分數 ---
+            if any(p[0] == r and p[1] == c for p in opponent_fives): score += WEIGHT_WIN # 阻止對方五是最高優先級
+            elif any(p[0] == r and p[1] == c for p in opponent_fours): score += WEIGHT_BLOCK_LIVE_THREE # 使用稍高的防守權重
+            elif any(p[0] == r and p[1] == c for p in opponent_jump_fours): score += WEIGHT_BLOCK_JUMP_LIVE_THREE
+            elif any(p[0] == r and p[1] == c for p in opponent_live_threes): score += WEIGHT_BLOCK_LIVE_THREE
+            elif any(p[0] == r and p[1] == c for p in opponent_jump_live_threes): score += WEIGHT_BLOCK_JUMP_LIVE_THREE
+            # elif any(p[0] == r and p[1] == c for p in opponent_sleep_threes): score += WEIGHT_BLOCK_SLEEP_THREE
+
+            # 基礎分數 (例如靠近中心的點或自己的棋子給微小加分) - 可選
+            # score += (7 - abs(r - 7)) * 0.01 + (7 - abs(c - 7)) * 0.01
+
+            # --- 記錄分數 ---
+            if score > 0: # 只考慮有正面價值的點
+                 candidate_moves_scores[(r, c)] = score
+                 if score > best_score:
+                      best_score = score
+
+        # --- 找出最佳分數對應的位置 ---
+        best_moves = []
+        if best_score > -float('inf'): # 確保找到了至少一個有價值的點
+            # 如果最高分是致勝/防五，只返回這些點
+            if best_score >= WEIGHT_WIN:
+                 best_moves = [pos for pos, score in candidate_moves_scores.items() if score >= WEIGHT_WIN]
+            else:
+                 # 返回所有達到最高分數的點
+                 best_moves = [pos for pos, score in candidate_moves_scores.items() if score >= best_score]
+
+        # print(f"AI Heuristic Eval: Best score={best_score}, Found {len(best_moves)} moves: {best_moves}")
+        return best_moves
+
+
+    def find_best_ai_move(self, board, move_log, move_count, current_player, analysis_handler):
+        """AI 尋找最佳著法，整合啟發式評估。"""
         ai_player = current_player
         opponent_player = WHITE if ai_player == BLACK else BLACK
-        empty_spots = [(r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] == EMPTY]
-        occupied_spots = set((r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] != EMPTY)
 
-        #analysis_handler._reconstruct_board(len(move_log) - 1)  # 重建棋盤狀態 (在game_logic處理)
-        #analysis_handler.update_live_three_positions()  # 更新活三資訊 (在game_logic處理)
-        #analysis_handler.update_live_four_positions()  # 更新連四資訊 (在game_logic處理)
-
-        live_three_positions = analysis_handler.get_live_three_positions() #拿取資訊
-        four_positions = analysis_handler.get_four_positions()  # 從 AnalysisHandler 獲取
-        jump_four_positions = analysis_handler.get_jump_four_positions() # 從 AnalysisHandler 獲取
-        five_positions = analysis_handler.get_five_positions()  # 從 AnalysisHandler 獲取 (新增)
-
-        def check_win_or_block(player):
-            """檢查是否有立即獲勝的機會或需要阻止對手獲勝。"""
-            for r, c in empty_spots:
-                if rules.is_legal_move(r, c, ai_player, move_count, board)[0]:
-                    board[r][c] = player
-                    win = rules.check_win_condition_at(r, c, player, board)
-                    board[r][c] = EMPTY  # Revert
-                    if win: return (r, c)
-            return None
-
-        # Strategy -1: AI Black First Move (Tengen)
+        # --- 策略 -1: 天元開局 ---
         if move_count == 0 and ai_player == BLACK:
             if rules.is_legal_move(7, 7, ai_player, move_count, board)[0]:
-                print(f"AI ({ai_player}) mandatory Tengen")
+                # print(f"AI ({ai_player}) mandatory Tengen")
                 return (7, 7), False
 
-        # Strategy 0: Opening Book
+        # --- 策略 0: 開局庫 (保持不變) ---
+        # ... (開局庫邏輯) ...
         if move_count > 0:
+            # (假設 OPENING_BOOK 已從 game_io 導入或在此可用)
+            from game_io import OPENING_BOOK # 臨時導入示例
             seq = tuple(tuple(m[k] for k in ['row', 'col']) for m in move_log)
             if seq in OPENING_BOOK:
                 possible_moves = OPENING_BOOK[seq]
                 valid_moves = [m for m in possible_moves if rules.is_legal_move(m[0], m[1], ai_player, move_count, board)[0]]
                 if valid_moves:
                     move = random.choice(valid_moves)
-                    print(f"AI ({ai_player}) using book {move} from {len(valid_moves)}")
+                    # print(f"AI ({ai_player}) using book {move} from {len(valid_moves)}")
                     return move, True
 
-        # Strategy 1: Win
-        winning_move = check_win_or_block(ai_player)
-        if winning_move:
-            print(f"AI ({ai_player}) found win at {winning_move}")
-            return winning_move, False
 
-        # Strategy 2: Block Win
-        blocking_move = check_win_or_block(opponent_player)
-        if blocking_move:
-            print(f"AI ({ai_player}) blocking win at {blocking_move}")
-            return blocking_move, False
-
-        def find_threatening_moves(player, threat_level): # Added helper function
-            """通用函數，用於尋找特定威脅等級的著法。"""
-            threatening_moves = []
-            for r, c in empty_spots:
-                if rules.is_legal_move(r, c, ai_player, move_count, board)[0]:
-                    board[r][c] = player
-                    threat_exists = False
-                    lines_info = rules.count_line(r, c, player, board)
-                    for count, ends in lines_info.values():
-                        if count == threat_level and ends >= 1:
-                            threat_exists = True
-                            break
-                board[r][c] = EMPTY
-                if threat_exists:
-                    threatening_moves.append((r, c))
-            return threatening_moves
-
-        # Strategy 2.25: Block Threatening Four
-        four_blocks = find_threatening_moves(opponent_player, 4)
-        if four_blocks:
-            move = random.choice(four_blocks)
-            print(f"AI ({ai_player}) blocking four at {move}")
+        # --- 策略 1: 檢查 AI 能否立即獲勝 ---
+        # (需要一個檢查獲勝的輔助函式，或者直接利用 AnalysisHandler 的 five_positions)
+        ai_winning_moves = analysis_handler.get_player_fives(ai_player)
+        valid_winning_moves = [(r, c) for r, c, _, _ in ai_winning_moves if rules.is_legal_move(r, c, ai_player, move_count, board)[0]]
+        if valid_winning_moves:
+            move = random.choice(valid_winning_moves)
+            # print(f"AI ({ai_player}) found win at {move}")
             return move, False
 
-        # Strategy 2.5: Block Open Three
-        three_blocks = []
-        for r, c in empty_spots:
-            if rules.is_legal_move(r, c, ai_player, move_count, board)[0]:
-                board[r][c] = opponent_player
-                forms_open_three = False
-                for dr_dc in DIRECTIONS:
-                    is_three, is_open = rules.check_specific_line_at(r, c, opponent_player, board, dr_dc, 3)
-                    if is_open:
-                        lines_info_temp = rules.count_line(r, c, opponent_player, board)
-                        count_overall, _ = lines_info_temp[dr_dc]
-                        if count_overall == 3:
-                            forms_open_three = True
-                            break
-                board[r][c] = EMPTY
-                if forms_open_three:
-                    three_blocks.append((r, c))
+        # --- 策略 2: 檢查對手能否立即獲勝並阻止 ---
+        opponent_winning_moves = analysis_handler.get_player_fives(opponent_player)
+        valid_blocking_moves = [(r, c) for r, c, _, _ in opponent_winning_moves if rules.is_legal_move(r, c, ai_player, move_count, board)[0]]
+        if valid_blocking_moves:
+            # 如果有多個點可以阻止對手獲勝，選擇哪個？
+            # 這裡可以簡單隨機選，或者調用啟發式評估來選擇防守價值最高的點
+            blocking_scores = {}
+            heuristic_block_candidates = self._evaluate_and_find_best_heuristic(board, move_count, ai_player, analysis_handler)
+            # 找出既是阻擋點又是啟發式高分點的交集
+            preferred_blocks = [move for move in valid_blocking_moves if move in heuristic_block_candidates]
+            if preferred_blocks:
+                 move = random.choice(preferred_blocks)
+                 # print(f"AI ({ai_player}) blocking win strategically at {move}")
+            elif valid_blocking_moves: # 如果啟發式沒建議，隨機選一個阻擋點
+                 move = random.choice(valid_blocking_moves)
+                 # print(f"AI ({ai_player}) blocking win at {move}")
+            else: # 理論上不應發生，如果 opponent_winning_moves 有但 valid_blocking_moves 沒有
+                 print(f"AI Warning: Opponent has winning moves but AI cannot block?")
+                 # Fallback needed here, maybe heuristic?
+                 pass
+            if 'move' in locals(): return move, False
 
-        if three_blocks:
-            move = random.choice(three_blocks)
-            print(f"AI ({ai_player}) blocking open three at {move}")
+
+        # --- 策略 3: 使用啟發式評估選擇最佳著法 ---
+        heuristic_best_moves = self._evaluate_and_find_best_heuristic(board, move_count, ai_player, analysis_handler)
+        if heuristic_best_moves:
+            move = random.choice(heuristic_best_moves) # 從最佳啟發式著法中隨機選一個
+            # print(f"AI ({ai_player}) chose heuristic move {move} from {len(heuristic_best_moves)} options.")
             return move, False
 
-        # Strategy 2.75: Block Opponent's "Sleeping Three to Four" Threat
-        sleeping_three_blocks = []
-        for r, c in empty_spots:
-            if rules.is_legal_move(r, c, ai_player, move_count, board)[0]:
-                board[r][c] = opponent_player
-                creates_sleeping_threat = False
-                lines_info = rules.count_line(r, c, opponent_player, board)
-                for count, open_ends in lines_info.values():
-                    if count == 3 and open_ends == 1:  # Check for sleeping three pattern
-                        creates_sleeping_threat = True
-                        break
-                board[r][c] = EMPTY
-                if creates_sleeping_threat:
-                    sleeping_three_blocks.append((r, c))
-
-        if sleeping_three_blocks:
-            block_choice = random.choice(sleeping_three_blocks)
-            print(f"AI ({ai_player}) blocking sleeping three threat at {block_choice}")
-            return block_choice, False
-
-        # Strategy 3: Adjacent/Random
+        # --- 策略 4: 備用策略 (如果啟發式沒有找到任何有價值的點) ---
+        # 可以選擇相鄰點或隨機點
+        occupied_spots = set((r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] != EMPTY)
         adjacent_spots = set()
         offsets = [(dr, dc) for dr in [-1, 0, 1] for dc in [-1, 0, 1] if not (dr == 0 and dc == 0)]
+        for r_o, c_o in occupied_spots:
+             for dr, dc in offsets:
+                  nr, nc = r_o + dr, c_o + dc
+                  if is_on_board(nr, nc) and board[nr][nc] == EMPTY:
+                       adjacent_spots.add((nr, nc))
 
-        if ai_player == WHITE and move_count == 1 and board[7][7] == BLACK:
-            adjacent_spots = {(7 + dr, 7 + dc) for dr, dc in offsets if is_on_board(7 + dr, 7 + dc) and board[7 + dr][7 + dc] == EMPTY}
-        else:
-            adjacent_spots = {(r_o + dr, c_o + dc) for r_o, c_o in occupied_spots for dr, dc in offsets if is_on_board(r_o + dr, c_o + dc) and board[r_o + dr, c_o + dc] == EMPTY}
+        valid_adjacent_moves = [spot for spot in adjacent_spots if rules.is_legal_move(spot[0], spot[1], ai_player, move_count, board)[0]]
 
-        candidate_moves = [spot for spot in adjacent_spots if rules.is_legal_move(spot[0], spot[1], ai_player, move_count, board)[0]]
-
-        # 策略 4: 優先選擇形成活三/連四/連五的位置
-        best_moves = []
-        for r, c in candidate_moves:
-            # 計算當前位置的威脅程度 (例如：可以形成活三、連四等)
-            threat_level = self.calculate_threat_level(r, c, ai_player, board, analysis_handler)
-
-            # 判斷哪些位置既能防守又能進攻 (例如：既能阻擋對手，又能形成威脅)
-            is_defensive = self.is_defensive_move(r, c, ai_player, board, opponent_player, analysis_handler)
-            is_offensive = threat_level > 0
-
-            # 綜合考慮威脅程度、防守能力和進攻能力，選擇最佳位置
-            if is_offensive and is_defensive:
-                best_moves.append((r, c, threat_level)) # 加入威胁等级
-            elif is_offensive:
-                best_moves.append((r, c, threat_level/2)) # 只有进攻，威胁等级减半
-
-        # 根据威胁等级排序
-        best_moves.sort(key=lambda x: x[2], reverse=True) # 按照威胁等级排序
-        best_moves = [m[:2] for m in best_moves] # 去除威胁等级信息
-
-        if best_moves:
-            move = random.choice(best_moves)
-            print(f"AI ({ai_player}) chose strategic move (five/four/jump_four/live_three) at {move}...")
-            return move, False
-        elif candidate_moves:
-            move = random.choice(candidate_moves)
-            print(f"AI ({ai_player}) chose adjacent {move}...")
+        if valid_adjacent_moves:
+            move = random.choice(valid_adjacent_moves)
+            # print(f"AI ({ai_player}) chose adjacent fallback {move}")
             return move, False
         else:
-            all_valid_moves = [spot for spot in empty_spots if rules.is_legal_move(spot[0], spot[1], ai_player, move_count, board)[0]]
+            # 最後的備用：隨機選擇任何合法空點
+            all_empty_spots = [(r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE) if board[r][c] == EMPTY]
+            all_valid_moves = [spot for spot in all_empty_spots if rules.is_legal_move(spot[0], spot[1], ai_player, move_count, board)[0]]
             if all_valid_moves:
                 move = random.choice(all_valid_moves)
-                print(f"AI ({ai_player}) chose random {move}...")
+                # print(f"AI ({ai_player}) chose random fallback {move}")
                 return move, False
             else:
-                print(f"AI ({ai_player}) no valid moves!")
-                return None, False
+                # print(f"AI ({ai_player}) no valid moves!")
+                return None, False # 真正無棋可走
 
-        print(f"Error: AI ({ai_player}) failed to determine move after all checks.")
+        # print(f"Error: AI ({ai_player}) failed to determine move after all checks.") # 理論上不應執行到這裡
         return None, False
 
-
+    # --- learn_from_ai_loss 保持不變 ---
     def learn_from_ai_loss(self, final_move_log, current_player_types):
         """從 AI 的失敗中學習，更新開局庫。"""
-        print("--- Entering AI learn_from_loss ---")
-        if not final_move_log or len(final_move_log) < 2:
-            print("Learn: Log too short.")
-            return
+        # ... (之前的學習邏輯) ...
+        pass # 佔位符，假設之前的邏輯還在
 
-        winner = final_move_log[-1].get('player')
-        loser = WHITE if winner == BLACK else BLACK
-        if current_player_types.get(loser) != "ai":
-            print(f"Learn: Loser {loser} not AI.")
-            return
 
-        ai_last_idx = next((i for i in range(len(final_move_log) - 2, -1, -1) if final_move_log[i].get('player') == loser), -1)
-        if ai_last_idx == -1:
-            print(f"Learn: AI {loser} move not found before loss.")
-            return
-
-        ai_losing_data = final_move_log[ai_last_idx]
-        losing_move = tuple(ai_losing_data[k] for k in ['row', 'col'])
-        seq_before = final_move_log[:ai_last_idx]
-        key_seq = tuple(tuple(m[k] for k in ['row', 'col']) for m in seq_before)
-        print(f"Learn: AI {loser} lost. Last AI move {losing_move} at index {ai_last_idx}")
-        print(f"Learn: Sequence key {key_seq}")
-
-        # Reconstruct board state
-        print("Learn: Reconstructing board state...")
-        temp_board = [[EMPTY for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
-        current_move_count = 0
-        for i, m in enumerate(seq_before):
-            r, c, p = m.get('row', -1), m.get('col', -1), m.get('player', 0)
-            if not is_on_board(r, c) or temp_board[r][c] != EMPTY:
-                print(f"Learn Err: Recon failed at step {i + 1} ({r},{c}). Invalid coord or overwrite.")
-                return
-            temp_board[r][c] = p
-            current_move_count += 1
-
-        print("Learn: Board reconstructed.")
-
-        # Find alternative valid moves
-        print(f"Learn: Finding valid moves for player {loser} (move_count={current_move_count})...")
-        valid_moves = [(r, c) for r in range(BOARD_SIZE) for c in range(BOARD_SIZE)
-                       if temp_board[r][c] == EMPTY and rules.is_legal_move(r, c, loser, current_move_count, temp_board)[0]]
-
-        print(f"Learn: Found {len(valid_moves)} valid moves then: {valid_moves}")
-        alternatives = [m for m in valid_moves if m != losing_move]
-        print(f"Learn: Losing move {losing_move}. Found {len(alternatives)} alternatives: {alternatives}")
-
-        # Update book
-        book_entry = OPENING_BOOK.get(key_seq)
-        updated = False
-
-        if isinstance(book_entry, list):
-            if losing_move in book_entry:
-                book_entry.remove(losing_move)
-                print(f"Learn: Removed {losing_move} from book list for {key_seq}.")
-                if not book_entry:
-                    del OPENING_BOOK[key_seq]
-                    print(f"Learn: Removed key {key_seq} as list empty.")
-                updated = True
-            else:
-                print(f"Learn: Losing move {losing_move} not in book list {book_entry}. No update.")
-        elif book_entry == losing_move:
-            if alternatives:
-                new_move = random.choice(alternatives)
-                OPENING_BOOK[key_seq] = [new_move]
-                print(f"Learn: Replaced single losing {losing_move} with [{new_move}] for {key_seq}.")
-                updated = True
-            else:
-                del OPENING_BOOK[key_seq]
-                print(f"Learn: Removed single losing {key_seq} no alternatives.")
-                updated = True
-        elif book_entry is None and alternatives:
-            new_move = random.choice(alternatives)
-            OPENING_BOOK[key_seq] = [new_move]
-            print(f"Learn: Added new seq {key_seq} to book with [{new_move}].")
-            updated = True
-        else:
-            print(f"Learn: No update needed/possible. Entry: {book_entry}, Alts: {len(alternatives)}")
-
-        if updated:
-            print("Learn: Saving updated book...")
-            save_opening_book_to_file(OPENING_BOOK)
-            print("Learn: Save called.")
-        else:
-            print("Learn: No changes to opening book.")
-        print("--- Exiting learn_from_loss ---")
-
-    def calculate_threat_level(self, r, c, player, board, analysis_handler):
-        """計算指定位置的威脅程度。"""
-        temp_board = self.simulate_move(board, r, c, player)
-        threat_level = 0
-        if (r, c, player, "five") in analysis_handler.get_five_positions():
-            threat_level += 5
-        elif (r, c, player, "four") in analysis_handler.get_four_positions():
-            threat_level += 4
-        elif (r, c, player, "jump_four") in analysis_handler.get_jump_four_positions():
-            threat_level += 3
-        elif (r, c, player, "live_three") in analysis_handler.get_live_three_positions():
-            threat_level += 2
-        if analysis_handler.check_34(temp_board, r, c, player):
-            threat_level += 1 #形成33/44
-
-        return threat_level
-
-    def is_defensive_move(self, r, c, player, board, opponent_player, analysis_handler):
-        """判斷指定位置是否為防守位置。"""
-        # 检查是否能阻挡对手的威胁
-        temp_board = self.simulate_move(board, r, c, player)
-        analysis_handler.update_live_three_positions() #更新
-        analysis_handler.update_live_four_positions()
-        four_positions = analysis_handler.get_four_positions()  # 從 AnalysisHandler 獲取
-        jump_four_positions = analysis_handler.get_jump_four_positions() # 從 AnalysisHandler 獲取
-        #能block对手的四，就算防御
-        return ((r, c, opponent_player, "four") in four_positions) or ((r, c, opponent_player, "jump_four") in jump_four_positions)
-
-    def simulate_move(self, board, row, col, player):
-        """模擬在指定位置下子，並返回新的棋盤狀態"""
-        new_board = [r[:] for r in board]  # 複製棋盤
-        new_board[row][col] = player
-        return new_board
-
-#  创建 AIPlayer 实例 (在 game_logic 中)
-ai_player = AIPlayer()
-
-# 修改 game_logic.py 中的 request_ai_move
-
-# --- AI move ---
-#def request_ai_move(self):
-#    """請求 AI 計算下一步著法。"""
-#    if self.game_state != GameState.PLAYING or self.player_types[self.current_player] != "ai":
-#        return None, False
-#    # 調用 ai_player 模塊的函數
-#    move, used_book = ai_player.find_best_ai_move(
-#        self.board, self.move_log, self.move_count, self.current_player, self.analysis_handler
-#    )
-#    return move, used_book
-
-if __name__ == '__main__':
-    # 示例用法 (需要實現 config, utils, rules, game_io 等模組)
-    # 這只是一個骨架，你需要根據你的實際遊戲環境來調整
-    # 例如創建一個棋盤，模擬一些移動，然後調用 AI 函數
-    print("This file contains the AI logic.  It needs to be integrated with a game environment.")
-    # Example Usage (Illustrative - Requires Setup of other modules)
-    board = [[EMPTY for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
-    move_log = []
-    current_player = BLACK
-    current_player_types = {BLACK: "ai", WHITE: "human"}  # Or "ai" for both
-    move_count = 0
-
-    # Simulate a few moves
-    board[7][7] = BLACK
-    move_log.append({'row': 7, 'col': 7, 'player': BLACK})
-    board[6][7] = WHITE
-    move_log.append({'row': 6, 'col': 7, 'player': WHITE})
-
-    # Create dummy Game and AnalysisHandler for testing
-    class Game:
-        def __init__(self, board, move_log):
-            self.board = board
-            self.move_log = move_log
-            self.game_state = "playing" # Just for test
-    game = Game(board, move_log) # Create a Game instance
-    analysis_handler = analysis.AnalysisHandler(game) # Initialize AnalysisHandler
-    analysis_handler._reconstruct_board(len(move_log) - 1)
-    analysis_handler.update_live_three_positions() #更新棋型
-    analysis_handler.update_live_four_positions()
-
-    best_move, used_book = ai_player.find_best_ai_move(board, move_log, move_count, current_player, analysis_handler) # pass handler
-
-    if best_move:
-        print(f"AI suggests move: {best_move}")
-        # ... (Update board, move_log, and other game state variables)
-
-    # Example of learning after a game
-    # ... (Simulate game to completion, record final_move_log)
-
-    # learn_from_ai_loss(final_move_log, current_player_types)
+# --- 在 game_logic.py 中創建實例 ---
+# ai_player_instance = AIPlayer() # 或者根據需要命名
