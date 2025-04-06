@@ -245,22 +245,22 @@ class RenjuGame:
         else:
             return self.last_move
 
-    def get_live_three_positions(self):
+    def get_live_three_positions(self,player):
         """Returns the list of live three positions to draw."""
-        return self.analysis_handler.get_live_three_positions()
+        return self.analysis_handler.live_three_positions
 
-    def get_jump_live_three_positions(self):
+    def get_jump_live_three_positions(self,player):
         """Returns the list of jump live three positions to draw."""
-        return self.analysis_handler.get_jump_live_three_positions()
+        return self.analysis_handler.jump_live_three_positions
 
-    def get_live_four_positions(self):
+    def get_live_four_positions(self,player):
         """Returns the list of live four positions to draw."""
-        return self.analysis_handler.get_four_positions()
+        return self.analysis_handler.four_positions
 
-    def get_jump_four_positions(self):
+    def get_jump_four_positions(self,player):
         """Returns the list of jump four positions to draw."""
-        return self.analysis_handler.get_jump_four_positions()
+        return self.analysis_handler.jump_four_positions
 
-    def get_five_positions(self):
+    def get_five_positions(self,player):
         """Returns the list of five positions to draw."""
-        return self.analysis_handler.get_five_positions()
+        return self.analysis_handler.five_positions

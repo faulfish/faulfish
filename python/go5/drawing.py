@@ -85,12 +85,14 @@ def draw_live_fives(screen, live_five_positions):
     """在棋盘上标记跳四的位置。"""
     _draw_pattern_marks(screen, live_five_positions, (255, 0, 0), "triangle", True)  # 藍色，空心正方形
 
-def _draw_pattern_marks(screen, positions, color, shape="circle", filled=False):
+def _draw_pattern_marks(screen, positions_dict, color, shape="circle", filled=False):
     """在棋盤上繪製指定樣式標記的輔助函式
 
     Args:
         screen: pygame 的 screen 物件，用於繪製。
-        positions: 包含要繪製標記的位置的列表，每個位置是一個 tuple (r, c, player, pattern_type)。
+        positions_dict: 包含要繪製標記的位置的字典，
+                       鍵是玩家 (BLACK/WHITE)，值是包含 tuple (r, c, player, pattern_type) 的列表。
+                       例如: {BLACK: [(r1, c1, BLACK, 'live_three'), ...], WHITE: [...] }
         color: 標記的顏色。
         shape: 標記的形狀，可以是 "circle"、"square" 或 "triangle"。
         filled: 是否繪製實心標記，預設為 False (空心)。
@@ -98,31 +100,53 @@ def _draw_pattern_marks(screen, positions, color, shape="circle", filled=False):
     mark_radius = SQUARE_SIZE // 4  # 標記半徑
     mark_thickness = 0 if filled else 2  # 實心時不畫邊框，空心時邊框粗細為2
 
-    for r, c, player, pattern_type in positions:
-        try:
-            center_x = MARGIN + c * SQUARE_SIZE
-            center_y = MARGIN + r * SQUARE_SIZE
+    # --- 修改迭代邏輯以處理字典 ---
+    if not isinstance(positions_dict, dict):
+        print(f"警告: _draw_pattern_marks 預期收到字典，但收到了 {type(positions_dict)}。 跳過此類標記的繪製。")
+        return # 或者可以嘗試處理舊的列表格式作為備用
 
-            if shape == "circle":
-                pygame.draw.circle(screen, color, (center_x, center_y), mark_radius, mark_thickness)
-            elif shape == "square":
-                pygame.draw.rect(screen, color, (center_x - mark_radius, center_y - mark_radius,
-                                             mark_radius * 2, mark_radius * 2), mark_thickness)
-            elif shape == "triangle":
-                # 計算三角形的三個頂點
-                point1 = (center_x, center_y - mark_radius)  # 上頂點
-                point2 = (center_x - mark_radius, center_y + mark_radius)  # 左下頂點
-                point3 = (center_x + mark_radius, center_y + mark_radius)  # 右下頂點
-                points = [point1, point2, point3]
+    # 遍歷字典中的每個玩家的列表
+    for player_key in positions_dict:
+        player_specific_positions = positions_dict[player_key]
+        # 遍歷該玩家列表中的每個位置元組
+        for r, c, player, pattern_type in player_specific_positions: # player變數來自元組，表示是哪個玩家下在此處能形成模式
+            try:
+                center_x = MARGIN + c * SQUARE_SIZE
+                center_y = MARGIN + r * SQUARE_SIZE
 
-                pygame.draw.polygon(screen, color, points, mark_thickness) # 使用polygon繪製三角形
+                # --- 繪製邏輯保持不變 ---
+                if shape == "circle":
+                    pygame.draw.circle(screen, color, (center_x, center_y), mark_radius, mark_thickness)
+                elif shape == "square":
+                    pygame.draw.rect(screen, color, (center_x - mark_radius, center_y - mark_radius,
+                                                 mark_radius * 2, mark_radius * 2), mark_thickness)
+                elif shape == "triangle":
+                    # 計算三角形的三個頂點
+                    point1 = (center_x, center_y - mark_radius)  # 上頂點
+                    point2 = (center_x - mark_radius, center_y + mark_radius)  # 左下頂點
+                    point3 = (center_x + mark_radius, center_y + mark_radius)  # 右下頂點
+                    points = [point1, point2, point3]
 
-            else:
-                print(f"警告: 未知的標記形狀: {shape}")  # 處理未知形狀
-            # print(f"繪製標記: ({r}, {c}), 顏色: {color}, 圓心: ({center_x}, {center_y}), 形狀: {shape}")  # Log
+                    pygame.draw.polygon(screen, color, points, mark_thickness) # 使用polygon繪製三角形
 
-        except Exception as e:
-            print(f"繪製 {shape} 標記時出錯: {e}")
+                else:
+                    print(f"警告: 未知的標記形狀: {shape}")  # 處理未知形狀
+                # print(f"繪製標記: ({r}, {c}), 顏色: {color}, 圓心: ({center_x}, {center_y}), 形狀: {shape}")  # Log
+
+            except Exception as e:
+                print(f"繪製 {shape} 標記在 ({r},{c}) 時出錯: {e}")
+    # --- 字典迭代結束 ---
+
+# --- 如何調用（示例，假設在主繪圖循環或 draw_analysis_info 函數中） ---
+# 假設 analysis_handler 已經更新
+# live_threes = analysis_handler.get_live_three_positions() # 這裡不傳 player，得到包含黑白雙方的字典
+# fours = analysis_handler.get_four_positions()
+# ... 等等
+
+# if show_analysis: # 假設有一個控制是否顯示分析的變數
+#     _draw_pattern_marks(screen, live_threes, (0, 0, 255), "circle")  # 用藍色圓圈標記所有活三潛力點
+#     _draw_pattern_marks(screen, fours, (255, 0, 0), "square")      # 用紅色方塊標記所有四潛力點
+#     # ... 為其他棋型調用 ...
 
 def draw_influence_map(screen, influence_map, font):
     """在棋盘上绘制影响力的值。"""

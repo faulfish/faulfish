@@ -186,11 +186,11 @@ def main():
                  game.ai_thinking = False # <-- 重置標誌在 finally 中
         
         influence_map = game.analysis_handler.influence_map # 获取 influence_map
-        live_three_positions = game.get_live_three_positions()
-        jump_live_three_positions = game.get_jump_live_three_positions()
-        live_four_positions = game.get_live_four_positions()
-        jump_four_positions = game.get_jump_four_positions()
-        five_positions = game.get_five_positions()
+        live_three_positions = game.get_live_three_positions(game.current_player)
+        jump_live_three_positions = game.get_jump_live_three_positions(game.current_player)
+        live_four_positions = game.get_live_four_positions(game.current_player)
+        jump_four_positions = game.get_jump_four_positions(game.current_player)
+        five_positions = game.get_five_positions(game.current_player)
 
         # --- 繪圖 ---
         try:
