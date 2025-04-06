@@ -3,6 +3,7 @@ import logging
 from config import (BOARD_SIZE, EMPTY, BLACK, WHITE)
 from utils import is_on_board
 import os
+import rules # 確保導入 rules
 
 print(os.getcwd())
 
@@ -101,39 +102,38 @@ class AnalysisHandler:
         logger.info(f"Updated Fives: B:{len(self.five_positions[BLACK])}, W:{len(self.five_positions[WHITE])}")
 
 
-    # --- 修改棋型查找 (Find) 方法以返回字典 ---
-    def find_live_threes(self, board):
-        """尋找活三, 包含對33/34的檢測（但僅標記為活三潛力點）"""
+    # --- 修改 find_live_threes ---
+    def find_live_threes(self, board): # board 參數可能可以移除，直接用 self.game.board
+        """尋找活三, 過濾黑方禁手"""
         positions = {BLACK: [], WHITE: []}
+        current_board = self.game.board # 從 game_ref 獲取當前棋盤
+        current_move_count = self.game.move_count # 從 game_ref 獲取當前步數
+
         for player in [BLACK, WHITE]:
-            player_positions_set = set() # 使用 set 去重
+            player_positions_set = set()
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
-                    # 考慮在有影響力的空點落子
-                    if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
-                        temp_board = self.simulate_move(board, row, col, player)
-                        temp_spot_positions = [] # 收集當前點位找到的活三
+                    if self.influence_map[row][col] > 0 and current_board[row][col] == EMPTY: # 使用當前棋盤檢查空點
+                        temp_board = self.simulate_move(current_board, row, col, player) # 模擬落子
+                        temp_spot_positions = [] # 收集此點的活三
 
-                        # 檢查活三 (check_live_three_direction 會將結果加入 temp_spot_positions)
+                        # 檢查活三方向...
                         self.check_live_three_direction(temp_board, row, col, player, 1, 0, temp_spot_positions, "live_three")
                         self.check_live_three_direction(temp_board, row, col, player, 0, 1, temp_spot_positions, "live_three")
                         self.check_live_three_direction(temp_board, row, col, player, 1, 1, temp_spot_positions, "live_three")
                         self.check_live_three_direction(temp_board, row, col, player, 1, -1, temp_spot_positions, "live_three")
 
-                        if temp_spot_positions: # 如果在該點落子能形成至少一個活三
-                             player_positions_set.add((row, col, player, "live_three")) # 添加元組到集合中
+                        if temp_spot_positions:
+                            # --- 在這裡加入禁手過濾 ---
+                            if player == BLACK:
+                                # 檢查 (row, col) 對於黑方是否為禁手
+                                is_valid, _ = rules.is_legal_move(row, col, BLACK, current_move_count, current_board)
+                                if not is_valid:
+                                    continue # 如果是禁手，則不將此點加入活三列表
 
-                             # 可以選擇性地記錄是否為33或34 (如果需要更精細的AI策略)
-                             live_three_count = len(set(pos[:2] for pos in temp_spot_positions)) # 計算獨立活三線數量 (基於方向可能重複記錄同一位置)
-                             is_34 = self.check_34(temp_board, row, col, player) # 需要實現 check_34
-                             if is_34:
-                                 logger.debug(f"Player {player} potential 34 at ({row},{col})")
-                                 # 可以將 'live_three' 改為 'three_four' 或添加到特定列表
-                                 # player_positions_set.add((row, col, player, "three_four"))
-                             elif live_three_count >= 2:
-                                 logger.debug(f"Player {player} potential 33 at ({row},{col})")
-                                 # 可以將 'live_three' 改為 'three_three' 或添加到特定列表
-                                 # player_positions_set.add((row, col, player, "three_three"))
+                            # --- 如果不是黑方禁手，或者玩家是白方 ---
+                            player_positions_set.add((row, col, player, "live_three"))
+                            # ... (可選的 33/34 檢測邏輯) ...
 
             positions[player] = list(player_positions_set)
         return positions
