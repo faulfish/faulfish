@@ -112,9 +112,12 @@ class RenjuGame:
             return False
 
         player = self.current_player
+        print(f"[GAME DEBUG] make_move({r},{c}), player={player}, move_count={self.move_count}") #<-- 添加
         # --- 使用 rules 模塊驗證 ---
         valid, reason = rules.is_legal_move(r, c, player, self.move_count, self.board)
+        print(f"[GAME DEBUG] rules.is_legal_move returned: valid={valid}, reason='{reason}'") #<-- 添加
         if not valid:
+            print(f"[GAME DEBUG] Move determined invalid. Returning False.") #<-- 添加
             player_name = "黑方" if player == BLACK else "白方"
             player_type_str = "(H)" if self.player_types[player] == "human" else "(AI)"
             if reason == "First move must be Tengen (7,7)":

@@ -106,7 +106,7 @@ class AnalysisHandler:
     def find_live_threes(self, board): # board 參數可能可以移除，直接用 self.game.board
         """尋找活三, 過濾黑方禁手"""
         positions = {BLACK: [], WHITE: []}
-        current_board = self.game.board # 從 game_ref 獲取當前棋盤
+        current_board = board # 從 game_ref 獲取當前棋盤
         current_move_count = self.game.move_count # 從 game_ref 獲取當前步數
 
         for player in [BLACK, WHITE]:
