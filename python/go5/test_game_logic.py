@@ -107,7 +107,7 @@ class TestRenjuGameKifu(unittest.TestCase):
         self.assertEqual(self.game.game_state, GameState.PLAYING, f"初始遊戲狀態應為 PLAYING")
         self.assertEqual(self.game.move_count, 0, "初始步數應為 0")
         self.assertEqual(self.game.board[7][7], self.EMPTY_SLOT, "初始時 (7,7) 應為空")
-        self.assertEqual(self.game.board[6][8], self.EMPTY_SLOT, "初始時 (8,6) 應為空")
+        self.assertEqual(self.game.board[8][6], self.EMPTY_SLOT, "初始時 (8,6) 應為空")
         print("[測試結果] 初始狀態檢查通過。")
 
         # === 2. 依序執行棋譜序列 ===
@@ -180,7 +180,7 @@ class TestRenjuGameKifu(unittest.TestCase):
                 # 如果 is_on_board(r, c) 期望 (row, column)，這裡應該用 is_on_board(y, x)
                 # 你目前使用的是 is_on_board(x, y)
                 if is_on_board(x, y):
-                    actual_player = self.game.board[y][x] # 讀取 board[y][x]
+                    actual_player = self.game.board[x][y] # 讀取 board[y][x]
                     self.assertEqual(actual_player, expected_player,
                                      f"最終狀態錯誤：位置 ({x},{y}) 應為 {player_name}棋 (值={expected_player}), 但實際是 (值={actual_player})")
                 else:
