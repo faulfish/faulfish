@@ -87,8 +87,8 @@ class AnalysisHandler:
         # --- find_... 方法現在返回字典 ---
         self.live_three_positions = self.find_live_threes(self.analysis_board)
         self.jump_live_three_positions = self.find_jump_live_threes(self.analysis_board)
-        logger.debug(f"Updated Live Threes: B:{len(self.live_three_positions[BLACK])}, W:{len(self.live_three_positions[WHITE])}")
-        logger.debug(f"Updated Jump Live Threes: B:{len(self.jump_live_three_positions[BLACK])}, W:{len(self.jump_live_three_positions[WHITE])}")
+        logger.info(f"Updated Live Threes: B:{len(self.live_three_positions[BLACK])}, W:{len(self.live_three_positions[WHITE])}")
+        logger.info(f"Updated Jump Live Threes: B:{len(self.jump_live_three_positions[BLACK])}, W:{len(self.jump_live_three_positions[WHITE])}")
 
 
     def update_live_four_positions(self):
@@ -97,9 +97,9 @@ class AnalysisHandler:
         self.four_positions = self.find_four_positions(self.analysis_board)
         self.jump_four_positions = self.find_jump_four_positions(self.analysis_board)
         self.five_positions = self.find_five_positions(self.analysis_board) # 更新連五位置
-        logger.debug(f"Updated Fours: B:{len(self.four_positions[BLACK])}, W:{len(self.four_positions[WHITE])}")
-        logger.debug(f"Updated Jump Fours: B:{len(self.jump_four_positions[BLACK])}, W:{len(self.jump_four_positions[WHITE])}")
-        logger.debug(f"Updated Fives: B:{len(self.five_positions[BLACK])}, W:{len(self.five_positions[WHITE])}")
+        logger.info(f"Updated Fours: B:{len(self.four_positions[BLACK])}, W:{len(self.four_positions[WHITE])}")
+        logger.info(f"Updated Jump Fours: B:{len(self.jump_four_positions[BLACK])}, W:{len(self.jump_four_positions[WHITE])}")
+        logger.info(f"Updated Fives: B:{len(self.five_positions[BLACK])}, W:{len(self.five_positions[WHITE])}")
 
 
     # --- 修改 find_live_threes ---
@@ -114,6 +114,7 @@ class AnalysisHandler:
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     if self.influence_map[row][col] > 0 and current_board[row][col] == EMPTY: # 使用當前棋盤檢查空點
+                        #print(f"find_live_threes simulate {row},{col} for live_three")
                         temp_board = self.simulate_move(current_board, row, col, player) # 模擬落子
                         temp_spot_positions = [] # 收集此點的活三
 
@@ -127,13 +128,13 @@ class AnalysisHandler:
                             # --- 在這裡加入禁手過濾 ---
                             if player == BLACK:
                                 # 檢查 (row, col) 對於黑方是否為禁手
-                                is_valid, reason = rules.is_legal_move(row, col, BLACK, current_move_count, current_board)
+                                is_valid, reason = rules.is_legal_move(row, col, BLACK, current_move_count, self.game.board)
                                 if not is_valid:
-                                    # print(f"find_live_threes {row},{col} reason is {reason}")
+                                    print(f"find_live_threes {row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
 
                             # --- 如果不是黑方禁手，或者玩家是白方 ---
-                            # print(f"find_live_threes add {row},{col} in live_three")
+                            #print(f"find_live_threes add {row},{col} in live_three")
                             player_positions_set.add((row, col, player, "live_three"))
                             # ... (可選的 33/34 檢測邏輯) ...
 
@@ -148,6 +149,7 @@ class AnalysisHandler:
     def find_four_positions(self, board):
          """尋找連四"""
          # 使用通用方法，傳遞 check_four_direction
+         print(f"find_four_positions simulate")
          return self._find_pattern_positions_direction(board, self.check_four_direction, "four")
 
     def find_jump_four_positions(self, board):
@@ -170,8 +172,8 @@ class AnalysisHandler:
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     # 考慮在有影響力的空點落子
-                    #if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
-                    if board[row][col] == EMPTY:
+                    if self.influence_map[row][col] > 0 and board[row][col] == EMPTY:
+                        # print(f"find {pattern_type} in {row},{col} simulate ")
                         temp_board = self.simulate_move(board, row, col, player)
                         # check_func 會修改 player_positions_set (需要調整 check_func 或這裡的邏輯)
                         # 更好的方式是 check_func 將結果添加到一個臨時列表，然後在這裡添加到 set
@@ -188,9 +190,9 @@ class AnalysisHandler:
                              # --- 在這裡加入禁手過濾 ---
                             if player == BLACK:
                                 # 檢查 (row, col) 對於黑方是否為禁手
-                                is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, board)
+                                is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, self.game.board)
                                 if not is_valid:
-                                    # print(f"{row},{col} reason is {reason}")
+                                    print(f"{row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
 
                             # --- 如果不是黑方禁手，或者玩家是白方 ---
@@ -210,14 +212,17 @@ class AnalysisHandler:
         pattern1 = f'{player}{player}{player}{player}0'
         pattern2 = f'0{player}{player}{player}{player}'
 
-        # print(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
+        # print(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir}) is {stones_str} in {pattern1}")
+        #find four in 7,6 simulate 
+        #Player 1 found potential Four at (7, 6) dir (0,1) is 00001111000 in 11110
         # 找到一個就要添加，因為 AI 可能需要知道所有能形成四的點
         if pattern1 in stones_str or pattern2 in stones_str:
-            logger.debug(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
+            logger.debug(f"found Four at ({row}, {col}) dir ({row_dir},{col_dir})")
                                
             # --- 在這裡加入禁手過濾 ---
             # 檢查 (row, col) 是否為44禁手
-            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, board)
+            is_valid, reason = rules.is_legal_move(row, col, player, self.game.move_count + 1, self.game.board)
+            # print(f"Player move is {is_valid} ,{reason}")
             if is_valid:
                 result_list.append((row, col, player, pattern_type))
 
@@ -234,7 +239,7 @@ class AnalysisHandler:
             logger.debug(f"Player {player} found potential Jump Four at ({row}, {col}) dir ({row_dir},{col_dir})")
             # --- 在這裡加入禁手過濾 ---
             # 檢查 (row, col) 是否為44禁手
-            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, board)
+            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, self.game.board)
             if is_valid:
                 result_list.append((row, col, player, pattern_type))
 
