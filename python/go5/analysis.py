@@ -127,7 +127,7 @@ class AnalysisHandler:
                             # --- 在這裡加入禁手過濾 ---
                             if player == BLACK:
                                 # 檢查 (row, col) 對於黑方是否為禁手
-                                is_valid, reason = rules.is_legal_move(row, col, BLACK, current_move_count, temp_board)
+                                is_valid, reason = rules.is_legal_move(row, col, BLACK, current_move_count, current_board)
                                 if not is_valid:
                                     # print(f"find_live_threes {row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
@@ -188,7 +188,7 @@ class AnalysisHandler:
                              # --- 在這裡加入禁手過濾 ---
                             if player == BLACK:
                                 # 檢查 (row, col) 對於黑方是否為禁手
-                                is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, temp_board)
+                                is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, board)
                                 if not is_valid:
                                     # print(f"{row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
@@ -270,11 +270,7 @@ class AnalysisHandler:
 
         if pattern in stones_str:
             logger.debug(f"Player {player} found potential Five at ({row}, {col}) dir ({row_dir},{col_dir})")
-            # --- 在這裡加入禁手過濾 ---
-            # 檢查 (row, col) 是否為長連禁手
-            is_valid, _ = rules.is_legal_move(row, col, player, self.game.move_count + 1, board)
-            if is_valid:
-                result_list.append((row, col, player, pattern_type))
+            result_list.append((row, col, player, pattern_type))
             # return True # 不需要返回
 
     def check_34(self, board, row, col, player):

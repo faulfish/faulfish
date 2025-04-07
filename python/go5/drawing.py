@@ -66,24 +66,24 @@ def draw_stones(screen, board, last_move, game_state):
 
 
 def draw_live_threes(screen, live_three_positions, current_player):
-    """在棋盘上标记活三的位置。"""
+    """在棋盘上标记下一手活三的位置。"""
     _draw_pattern_marks(screen, live_three_positions, current_player, "circle", True)  # 紅色，空心圓
 
 def draw_jump_live_threes(screen, jump_live_three_positions, current_player):
-    """在棋盘上标记跳活三的位置。"""
+    """在棋盘上标记下一手跳活三的位置。"""
     _draw_pattern_marks(screen, jump_live_three_positions, current_player, "circle")  # 藍色，空心圓
 
 def draw_live_fours(screen, live_four_positions, current_player):
-    """在棋盘上标记活四的位置。"""
+    """在棋盘上标记下一手活四的位置。"""
     _draw_pattern_marks(screen, live_four_positions, current_player, "square")  # 紅色，空心正方形
 
 def draw_jump_fours(screen, jump_four_positions, current_player):
-    """在棋盘上标记跳四的位置。"""
+    """在棋盘上标记下一手跳四的位置。"""
     _draw_pattern_marks(screen, jump_four_positions, current_player, "square")  # 藍色，空心正方形
 
 def draw_live_fives(screen, live_five_positions, current_player):
-    """在棋盘上标记跳四的位置。"""
-    _draw_pattern_marks(screen, live_five_positions, current_player, "triangle", True)  # 藍色，空心正方形
+    """在棋盘上标记下一手五連的位置。"""
+    _draw_pattern_marks(screen, live_five_positions, current_player, "triangle", True)  # 藍色，實心三角形
 
 def _draw_pattern_marks(screen, positions_dict, current_player, shape="circle", filled=False):
     """在棋盤上繪製指定樣式標記的輔助函式，顏色區分當前玩家和對手。

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import copy # 為了 temp_board，雖然這裡可能不需要深拷貝
+
 # Assume these are defined elsewhere or replace with actual values/imports
 BOARD_SIZE = 15
 EMPTY = 0
@@ -282,48 +284,52 @@ def is_legal_move(r, c, player, move_count, board):
     # print(f"rules is_legal_move({r},{c})")
     """
     綜合檢查落子是否合法 (邊界, 佔用, 天元規則, 禁手)。
-    使用棋盤副本進行檢查。
     """
-    # 1. Basic checks: On board and empty?
+    # 1. 檢查邊界
     if not is_on_board(r, c):
-        # print(f"not pos")
-        return False, "Occupied or Off-board"
+        return False, "Occupied or Off-board" # 或者 "Off-board"
 
-    # --- Create a temporary board copy to simulate the move ---
-    temp_board = [row[:] for row in board]
+    # *** 2. 檢查是否已被佔據 (使用原始 board) *** <--- 新增/修正
+    if board[r][c] != EMPTY:
+        return False, "Occupied or Off-board" # 或者 "Occupied"
+    # ******************************************
 
-    # 2. Tengen Rule (Black's first move)
+    # 3. 檢查天元規則 (僅黑棋第一步)
     if player == BLACK and move_count == 0:
         center = BOARD_SIZE // 2
-        if (r, c) == (center, center): # Assuming standard center rule
-            # print(f"center pos")
-            return True, None
-        else:
-            # Find the actual center coordinate for the message 
-            # print(f"center Fail")
+        if (r, c) != (center, center):
             return False, f"First move must be Tengen ({center},{center})"
+        # 如果是天元，不需要再檢查禁手和勝利，直接返回 True
+        # （因為不可能在第一步形成禁手或勝利）
+        # print(f"center pos")
+        return True, None # 天元總是合法的 (如果界內且未佔用)
 
-    # 3. Simulate the move on the temporary board
+    # --- 只有在非第一步天元，且未佔用時，才需要模擬和檢查後續 ---
+    # --- Create a temporary board copy to simulate the move ---
+    # temp_board = [row[:] for row in board] # 淺拷貝通常足夠
+    # 或者使用深拷貝確保完全獨立（如果後續檢查會修改列表內部結構）
+    temp_board = copy.deepcopy(board)
+
+
+    # 4. Simulate the move on the temporary board
     temp_board[r][c] = player
 
-    # 4. Check for win condition first (Winning move overrides forbidden moves)
+    # 5. Check for win condition first (Winning move overrides forbidden moves)
     if check_win_condition_at(r, c, player, temp_board):
         # print(f"win pos")
         return True, None # Winning move is always legal
 
-    # 5. If not a winning move, check for forbidden moves (only for Black)
+    # 6. If not a winning move, check for forbidden moves (only for Black)
     if player == BLACK:
         forbidden_reason = check_forbidden_move_at(r, c, temp_board)
         if forbidden_reason:
-            # It's a forbidden move
             # print(f"{r},{c} is {forbidden_reason}")
             return False, forbidden_reason # Return the specific reason
         else:
-            # Not a forbidden move, and not a winning move, so it's legal
             # print(f"{r},{c} is legal B")
-            return True, None
+            return True, None # Not forbidden, not win -> legal for Black
     else: # player == WHITE
-        # White has no forbidden moves. If it's not a win, it's legal.
+        # White has no forbidden moves. If it's not occupied, on board, and not a win, it's legal.
         # print(f"{r},{c} is legal")
         return True, None
 
