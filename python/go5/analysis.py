@@ -87,8 +87,8 @@ class AnalysisHandler:
         # --- find_... 方法現在返回字典 ---
         self.live_three_positions = self.find_live_threes(self.analysis_board)
         self.jump_live_three_positions = self.find_jump_live_threes(self.analysis_board)
-        logger.info(f"Updated Live Threes: B:{len(self.live_three_positions[BLACK])}, W:{len(self.live_three_positions[WHITE])}")
-        logger.info(f"Updated Jump Live Threes: B:{len(self.jump_live_three_positions[BLACK])}, W:{len(self.jump_live_three_positions[WHITE])}")
+        logger.debug(f"Updated Live Threes: B:{len(self.live_three_positions[BLACK])}, W:{len(self.live_three_positions[WHITE])}")
+        logger.debug(f"Updated Jump Live Threes: B:{len(self.jump_live_three_positions[BLACK])}, W:{len(self.jump_live_three_positions[WHITE])}")
 
 
     def update_live_four_positions(self):
@@ -97,9 +97,9 @@ class AnalysisHandler:
         self.four_positions = self.find_four_positions(self.analysis_board)
         self.jump_four_positions = self.find_jump_four_positions(self.analysis_board)
         self.five_positions = self.find_five_positions(self.analysis_board) # 更新連五位置
-        logger.info(f"Updated Fours: B:{len(self.four_positions[BLACK])}, W:{len(self.four_positions[WHITE])}")
-        logger.info(f"Updated Jump Fours: B:{len(self.jump_four_positions[BLACK])}, W:{len(self.jump_four_positions[WHITE])}")
-        logger.info(f"Updated Fives: B:{len(self.five_positions[BLACK])}, W:{len(self.five_positions[WHITE])}")
+        logger.debug(f"Updated Fours: B:{len(self.four_positions[BLACK])}, W:{len(self.four_positions[WHITE])}")
+        logger.debug(f"Updated Jump Fours: B:{len(self.jump_four_positions[BLACK])}, W:{len(self.jump_four_positions[WHITE])}")
+        logger.debug(f"Updated Fives: B:{len(self.five_positions[BLACK])}, W:{len(self.five_positions[WHITE])}")
 
 
     # --- 修改 find_live_threes ---
@@ -330,7 +330,7 @@ class AnalysisHandler:
         return ''.join(stones)
 
     def update_influence_map(self, player, x, y):
-        print(f"analysis update_influence_map()")
+        # print(f"analysis update_influence_map()")
         """更新影響力地圖"""
         # 注意：這個影響力地圖目前沒有區分黑白棋的影響力，
         # 它只是標記了某個空點周圍有多少棋子。

@@ -173,22 +173,22 @@ class TestRenjuGameRules(unittest.TestCase):
         initial_moves = [
             (7, 7), (0, 0), # B(Tengen), W
             (1, 2), (0, 1), # B
-            (3, 2), (0, 2), # B
+            (3, 2), (0, 7), # B
             (2, 1), (0, 3), # B
             (2, 3), (0, 4)  # B, White plays somewhere else
         ]
         played_ok = self._play_moves(initial_moves)
         self.assertTrue(played_ok, "設置三三禁手局面 v4 時，所有初始棋步都應合法")
-        self.assertEqual(self.game.current_player, WHITE, "v4 佈局後應輪到白棋") # Last B played
+        self.assertEqual(self.game.current_player, BLACK, "v4 佈局後應輪到黑棋..") # Last B played
 
         # White plays a non-interfering move
-        white_move_x, white_move_y = 10, 10
-        print(f"[測試步驟] 白棋在非干擾點 (欄={white_move_x}, 列={white_move_y}) 下棋...")
-        played_ok_w = self.game.make_move(white_move_y, white_move_x)
-        self.assertTrue(played_ok_w, f"白棋在 ({white_move_x},{white_move_y}) 落子應成功")
+        #white_move_x, white_move_y = 10, 10
+        #print(f"[測試步驟] 白棋在非干擾點 (欄={white_move_x}, 列={white_move_y}) 下棋...")
+        #played_ok_w = self.game.make_move(white_move_y, white_move_x)
+        #self.assertTrue(played_ok_w, f"白棋在 ({white_move_x},{white_move_y}) 落子應成功")
 
         # Now it's Black's turn
-        self.assertEqual(self.game.current_player, BLACK, "白棋落子後應輪到黑棋")
+        self.assertEqual(self.game.current_player, BLACK, "白棋落子後應輪到黑棋mmm")
         forbidden_x, forbidden_y = 2, 2 # Target (2,2) should be 3x3 forbidden
         print(f"[測試步驟] 嘗試黑棋在三三禁手點 (欄={forbidden_x}, 列={forbidden_y}) 下棋...")
         is_move_made = self.game.make_move(forbidden_y, forbidden_x) # Pass (row, col)
