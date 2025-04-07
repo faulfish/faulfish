@@ -149,7 +149,7 @@ class AnalysisHandler:
     def find_four_positions(self, board):
          """尋找連四"""
          # 使用通用方法，傳遞 check_four_direction
-         print(f"find_four_positions simulate")
+         #print(f"find_four_positions simulate")
          return self._find_pattern_positions_direction(board, self.check_four_direction, "four")
 
     def find_jump_four_positions(self, board):
@@ -192,7 +192,7 @@ class AnalysisHandler:
                                 # 檢查 (row, col) 對於黑方是否為禁手
                                 is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, self.game.board)
                                 if not is_valid:
-                                    print(f"{row},{col} reason is {reason}")
+                                    print(f"{pattern_type} {row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
 
                             # --- 如果不是黑方禁手，或者玩家是白方 ---
