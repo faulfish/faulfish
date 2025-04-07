@@ -127,11 +127,13 @@ class AnalysisHandler:
                             # --- 在這裡加入禁手過濾 ---
                             if player == BLACK:
                                 # 檢查 (row, col) 對於黑方是否為禁手
-                                is_valid, _ = rules.is_legal_move(row, col, BLACK, current_move_count, current_board)
+                                is_valid, reason = rules.is_legal_move(row, col, BLACK, current_move_count, temp_board)
                                 if not is_valid:
+                                    print(f"find_live_threes {row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
 
                             # --- 如果不是黑方禁手，或者玩家是白方 ---
+                            print(f"find_live_threes add {row},{col} in live_three")
                             player_positions_set.add((row, col, player, "live_three"))
                             # ... (可選的 33/34 檢測邏輯) ...
 
@@ -183,7 +185,18 @@ class AnalysisHandler:
                         # 將從這個 (row, col) 點找到的所有 pattern 加入集合
                         # 注意 check_func 可能會因為不同方向找到同一個模式而多次添加同一個元組，set 會處理
                         for pos in temp_spot_positions:
-                             player_positions_set.add(pos) # 添加 (r, c, p, type) 元組
+                             # --- 在這裡加入禁手過濾 ---
+                            if player == BLACK:
+                                # 檢查 (row, col) 對於黑方是否為禁手
+                                is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, temp_board)
+                                if not is_valid:
+                                    print(f"{row},{col} reason is {reason}")
+                                    continue # 如果是禁手，則不將此點加入活三列表
+
+                            # --- 如果不是黑方禁手，或者玩家是白方 ---
+                            print(f"_find_pattern_positions_direction add {row},{col} in {pattern_type}")
+                            player_positions_set.add(pos)
+                            # ... (可選的 33/34 檢測邏輯) ...
 
             positions[player] = list(player_positions_set) # 轉換回列表
         return positions
@@ -197,7 +210,7 @@ class AnalysisHandler:
         pattern1 = f'{player}{player}{player}{player}0'
         pattern2 = f'0{player}{player}{player}{player}'
 
-        print(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
+        # print(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
         # 找到一個就要添加，因為 AI 可能需要知道所有能形成四的點
         if pattern1 in stones_str or pattern2 in stones_str:
             logger.debug(f"Player {player} found potential Four at ({row}, {col}) dir ({row_dir},{col_dir})")
@@ -321,6 +334,7 @@ class AnalysisHandler:
         return ''.join(stones)
 
     def update_influence_map(self, player, x, y):
+        print(f"analysis update_influence_map()")
         """更新影響力地圖"""
         # 注意：這個影響力地圖目前沒有區分黑白棋的影響力，
         # 它只是標記了某個空點周圍有多少棋子。
