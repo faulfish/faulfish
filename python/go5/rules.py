@@ -279,14 +279,14 @@ def check_forbidden_move_at(r, c, board):
 # --- is_legal_move (Remains the same, relies on corrected check_forbidden_move_at) ---
 
 def is_legal_move(r, c, player, move_count, board):
-    print(f"rules is_legal_move({r},{c})")
+    # print(f"rules is_legal_move({r},{c})")
     """
     綜合檢查落子是否合法 (邊界, 佔用, 天元規則, 禁手)。
     使用棋盤副本進行檢查。
     """
     # 1. Basic checks: On board and empty?
     if not is_on_board(r, c):
-        print(f"not pos")
+        # print(f"not pos")
         return False, "Occupied or Off-board"
 
     # --- Create a temporary board copy to simulate the move ---
@@ -296,11 +296,11 @@ def is_legal_move(r, c, player, move_count, board):
     if player == BLACK and move_count == 0:
         center = BOARD_SIZE // 2
         if (r, c) == (center, center): # Assuming standard center rule
-            print(f"center pos")
+            # print(f"center pos")
             return True, None
         else:
             # Find the actual center coordinate for the message 
-            print(f"center Fail")
+            # print(f"center Fail")
             return False, f"First move must be Tengen ({center},{center})"
 
     # 3. Simulate the move on the temporary board
@@ -308,7 +308,7 @@ def is_legal_move(r, c, player, move_count, board):
 
     # 4. Check for win condition first (Winning move overrides forbidden moves)
     if check_win_condition_at(r, c, player, temp_board):
-        print(f"win pos")
+        # print(f"win pos")
         return True, None # Winning move is always legal
 
     # 5. If not a winning move, check for forbidden moves (only for Black)
@@ -316,15 +316,15 @@ def is_legal_move(r, c, player, move_count, board):
         forbidden_reason = check_forbidden_move_at(r, c, temp_board)
         if forbidden_reason:
             # It's a forbidden move
-            print(f"{r},{c} is {forbidden_reason}")
+            # print(f"{r},{c} is {forbidden_reason}")
             return False, forbidden_reason # Return the specific reason
         else:
             # Not a forbidden move, and not a winning move, so it's legal
-            print(f"{r},{c} is legal B")
+            # print(f"{r},{c} is legal B")
             return True, None
     else: # player == WHITE
         # White has no forbidden moves. If it's not a win, it's legal.
-        print(f"{r},{c} is legal")
+        # print(f"{r},{c} is legal")
         return True, None
 
 # Example usage (conceptual)

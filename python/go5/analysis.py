@@ -129,11 +129,11 @@ class AnalysisHandler:
                                 # 檢查 (row, col) 對於黑方是否為禁手
                                 is_valid, reason = rules.is_legal_move(row, col, BLACK, current_move_count, temp_board)
                                 if not is_valid:
-                                    print(f"find_live_threes {row},{col} reason is {reason}")
+                                    # print(f"find_live_threes {row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
 
                             # --- 如果不是黑方禁手，或者玩家是白方 ---
-                            print(f"find_live_threes add {row},{col} in live_three")
+                            # print(f"find_live_threes add {row},{col} in live_three")
                             player_positions_set.add((row, col, player, "live_three"))
                             # ... (可選的 33/34 檢測邏輯) ...
 
@@ -190,11 +190,11 @@ class AnalysisHandler:
                                 # 檢查 (row, col) 對於黑方是否為禁手
                                 is_valid, reason = rules.is_legal_move(row, col, BLACK, self.game.move_count, temp_board)
                                 if not is_valid:
-                                    print(f"{row},{col} reason is {reason}")
+                                    # print(f"{row},{col} reason is {reason}")
                                     continue # 如果是禁手，則不將此點加入活三列表
 
                             # --- 如果不是黑方禁手，或者玩家是白方 ---
-                            print(f"_find_pattern_positions_direction add {row},{col} in {pattern_type}")
+                            # print(f"_find_pattern_positions_direction add {row},{col} in {pattern_type}")
                             player_positions_set.add(pos)
                             # ... (可選的 33/34 檢測邏輯) ...
 

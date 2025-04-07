@@ -106,6 +106,7 @@ class RenjuGame:
                 # --- 結束調用 ---
 
     def make_move(self, r, c):
+        # print(f"game_logic make_move {r},{c}")
         if self.game_state != GameState.PLAYING:
             self.status_message = "遊戲已結束或暫停"
             return False
@@ -141,7 +142,6 @@ class RenjuGame:
 
         # 更新影響力地圖 (新增)
         self.analysis_handler.update_influence_map(player, r, c)  # 更新周圍點位
-        print(f"make_move ({r},{c}) self.analysis_handler.update_influence_map()")
 
         # Check win/draw using rules module
         if rules.check_win_condition_at(r, c, player, self.board):
@@ -168,7 +168,7 @@ class RenjuGame:
         self.switch_player()
         # 在移動後更新活三和跳活三的位置（遊戲進行中）
         self.analysis_handler.update_live_three_positions()
-        print(f"update_live_four_positions...")
+        # print(f"update_live_four_positions...")
         self.analysis_handler.update_live_four_positions()
         return True
 
